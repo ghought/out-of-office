@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Out of Office — Vantage Solutions</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    color: #ccc;
+    overflow: hidden;
+    user-select: none;
+  }
+  #game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #title-bar {
+    background: #2C3E50;
+    color: #8BA7C7;
+    padding: 4px 16px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    width: 800px;
+    border-top: 2px solid #4A90D9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #canvas-container {
+    position: relative;
+    width: 800px;
+    height: 480px;
+    background: #E8E4DE;
+    overflow: hidden;
+  }
+  #gameCanvas { display: block; }
+  #hud {
+    background: #2C3E50;
+    width: 800px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-top: 2px solid #4A90D9;
+  }
+  .hud-section { display: flex; flex-direction: column; gap: 2px; }
+  .hud-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: #8BA7C7; }
+  .hud-value { font-size: 13px; color: #E8E4DE; font-weight: bold; }
+  #suspicion-bar-container { flex: 1; }
+  #suspicion-track {
+    width: 100%; height: 10px;
+    background: #1a1a2e;
+    border-radius: 2px;
+    overflow: hidden;
+    border: 1px solid #4A90D9;
+  }
+  #suspicion-fill { height: 100%; width: 0%; transition: width 0.3s, background-color 0.3s; background: #4AD97A; }
+  #inventory { display: flex; gap: 6px; }
+  .inv-slot {
+    width: 36px; height: 36px;
+    background: #1a1a2e;
+    border: 1px solid #4A90D9;
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; position: relative;
+  }
+  .inv-slot.selected { border-color: #FFD700; box-shadow: 0 0 6px #FFD700; }
+  .inv-slot:hover .inv-tooltip { display: block; }
+  .inv-tooltip {
+    display: none; position: absolute; bottom: 42px; left: 50%;
+    transform: translateX(-50%); background: #2C3E50; color: #E8E4DE;
+    font-size: 10px; padding: 4px 8px; white-space: nowrap;
+    border: 1px solid #4A90D9; z-index: 100; pointer-events: none;
+  }
+  #room-name {
+    font-size: 11px; color: #8BA7C7; text-align: right; flex: 1;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* Title screen */
+  #title-screen {
+    position: absolute; top: 0; left: 0;
+    width: 800px; height: 480px;
+    background: #1a1a2e;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 200; gap: 16px;
+  }
+  #title-screen h1 { font-size: 48px; color: #4A90D9; letter-spacing: 6px; text-transform: uppercase; }
+  #title-screen .tagline {
+    font-size: 13px; color: #8BA7C7; letter-spacing: 2px;
+    max-width: 500px; text-align: center; line-height: 1.6;
+  }
+  #title-screen .company { font-size: 11px; color: #4A90D9; letter-spacing: 4px; text-transform: uppercase; margin-top: 8px; }
+  .btn {
+    background: #2C3E50; color: #4A90D9; border: 2px solid #4A90D9;
+    padding: 10px 32px; font-family: 'Courier New', monospace;
+    font-size: 14px; letter-spacing: 2px; text-transform: uppercase;
+    cursor: pointer; margin-top: 16px; transition: all 0.2s;
+  }
+  .btn:hover { background: #4A90D9; color: #1a1a2e; }
+
+  /* Dialogue */
+  #dialogue-box {
+    position: absolute; bottom: 12px; left: 12px; right: 12px;
+    background: rgba(44, 62, 80, 0.97); border: 2px solid #4A90D9;
+    padding: 16px; z-index: 100; display: none;
+  }
+  #dialogue-speaker { font-size: 11px; color: #4A90D9; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  #dialogue-text { font-size: 13px; color: #E8E4DE; line-height: 1.6; white-space: pre-line; }
+  #dialogue-options { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .dialogue-btn {
+    background: #1a1a2e; color: #8BA7C7; border: 1px solid #4A90D9;
+    padding: 6px 14px; font-family: 'Courier New', monospace;
+    font-size: 11px; cursor: pointer; letter-spacing: 1px;
+  }
+  .dialogue-btn:hover { background: #2C3E50; color: #E8E4DE; }
+
+  /* Slack */
+  #slack-popup {
+    position: absolute; top: 12px; right: 12px;
+    background: rgba(74, 21, 75, 0.97); border: 2px solid #9B59B6;
+    padding: 14px; z-index: 150; display: none; max-width: 280px;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  #slack-header { font-size: 10px; color: #9B59B6; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  #slack-sender { font-size: 11px; color: #E8E4DE; font-weight: bold; margin-bottom: 4px; }
+  #slack-message { font-size: 12px; color: #ccc; line-height: 1.5; }
+  #slack-timer-bar { height: 3px; background: #9B59B6; margin-top: 10px; width: 100%; }
+  #slack-btns { display: flex; gap: 8px; margin-top: 8px; }
+  .slack-reply-btn {
+    background: #9B59B6; color: white; border: none; padding: 5px 12px;
+    font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer;
+  }
+  .slack-reply-btn:hover { background: #7D3C98; }
+
+  /* Printer minigame */
+  #printer-game {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #2C3E50; border: 2px solid #4A90D9;
+    padding: 24px; z-index: 200; display: none;
+    text-align: center; width: 320px;
+  }
+  #printer-title { font-size: 14px; color: #4A90D9; margin-bottom: 12px; letter-spacing: 2px; }
+  #printer-sequence { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  .seq-btn {
+    width: 50px; height: 50px; background: #1a1a2e;
+    border: 2px solid #4A90D9; color: #4A90D9;
+    font-size: 20px; cursor: pointer; font-family: 'Courier New', monospace;
+  }
+  .seq-btn.highlight { background: #4A90D9; color: #1a1a2e; }
+  .seq-btn.correct { border-color: #4AD97A; background: #1A3A2A; }
+  .seq-btn.wrong { border-color: #D94A4A; background: #3A1A1A; }
+  #printer-prompt { font-size: 12px; color: #8BA7C7; margin-top: 8px; }
+  #printer-progress { display: flex; gap: 4px; justify-content: center; margin-top: 8px; }
+  .prog-dot { width: 8px; height: 8px; border-radius: 50%; background: #1a1a2e; border: 1px solid #4A90D9; }
+  .prog-dot.done { background: #4AD97A; }
+
+  /* End screen */
+  #end-screen {
+    position: absolute; top: 0; left: 0;
+    width: 800px; height: 480px; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    z-index: 300; text-align: center; gap: 16px; padding: 40px;
+  }
+  #end-screen.win { background: rgba(26, 26, 46, 0.97); }
+  #end-screen.lose-time { background: rgba(44, 62, 80, 0.97); }
+  #end-screen.lose-suspicion { background: rgba(30, 10, 10, 0.97); }
+  #end-title { font-size: 28px; letter-spacing: 4px; text-transform: uppercase; }
+  #end-body { font-size: 14px; color: #8BA7C7; line-height: 1.8; max-width: 500px; font-style: italic; }
+  #end-stats { font-size: 12px; color: #4A90D9; letter-spacing: 1px; }
+
+  /* Toast */
+  #toast {
+    position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: rgba(44,62,80,0.95); color: #E8E4DE;
+    font-size: 12px; padding: 8px 16px; border: 1px solid #4A90D9;
+    font-family: 'Courier New', monospace; letter-spacing: 1px;
+    z-index: 400; pointer-events: none; max-width: 500px;
+    text-align: center; white-space: pre-line;
+    opacity: 0; transition: opacity 0.3s;
+  }
+
+  /* Minimap */
+  #minimap {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(44,62,80,0.85); border: 1px solid #4A90D9;
+    padding: 6px; z-index: 50;
+  }
+  #minimap canvas { display: block; }
+  .minimap-label {
+    font-size: 8px; color: #8BA7C7; text-align: center;
+    letter-spacing: 1px; margin-top: 3px;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <div id="title-bar">
+    <span>VANTAGE SOLUTIONS — FLOOR 7</span>
+    <span id="connection-status">● CONNECTED</span>
+  </div>
+  <div id="canvas-container">
+    <canvas id="gameCanvas" width="800" height="480"></canvas>
+
+    <div id="title-screen">
+      <div class="company">Vantage Solutions</div>
+      <h1>Out of Office</h1>
+      <div class="tagline">"Your return-to-office mandate just became a hostage situation."</div>
+      <div style="font-size:11px;color:#4A6080;margin-top:8px;">Monday · Floor 7 · 9:00 AM</div>
+      <button class="btn" onclick="startGame()">Clock In</button>
+      <div style="font-size:10px;color:#4A6080;margin-top:12px;line-height:1.8;">
+        WASD / Arrow Keys — Move &nbsp;&nbsp; E — Interact &nbsp;&nbsp; Click inventory — Use item<br>
+        Escape the building before 6 PM. Don't let your Engagement Score hit 100%.
+      </div>
+    </div>
+
+    <div id="dialogue-box">
+      <div id="dialogue-speaker"></div>
+      <div id="dialogue-text"></div>
+      <div id="dialogue-options"></div>
+    </div>
+
+    <div id="slack-popup">
+      <div id="slack-header"></div>
+      <div id="slack-sender"></div>
+      <div id="slack-message"></div>
+      <div id="slack-timer-bar"></div>
+      <div id="slack-btns">
+        <button class="slack-reply-btn" onclick="replySlack()">👍 React</button>
+        <button class="slack-reply-btn" onclick="replySlack()">Sounds great!</button>
+      </div>
+    </div>
+
+    <div id="printer-game">
+      <div id="printer-title">PAPER JAM DETECTED</div>
+      <div style="font-size:11px;color:#8BA7C7;margin-bottom:10px;">Match the sequence to clear the jam</div>
+      <div id="printer-sequence"></div>
+      <div id="printer-prompt">Watch, then repeat!</div>
+      <div id="printer-progress"></div>
+      <button class="dialogue-btn" id="printer-cancel-btn" onclick="cancelPrinter()" style="margin-top:12px;">Give Up</button>
+    </div>
+
+    <div id="end-screen">
+      <div id="end-title"></div>
+      <div id="end-body"></div>
+      <div id="end-stats"></div>
+      <button class="btn" onclick="resetGame()" style="margin-top:16px;">Try Again</button>
+    </div>
+
+    <div id="minimap"><canvas id="minimapCanvas" width="100" height="60"></canvas><div class="minimap-label">FLOOR 7</div></div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="hud">
+    <div class="hud-section">
+      <div class="hud-label">Time</div>
+      <div class="hud-value" id="hud-time">9:00 AM</div>
+    </div>
+    <div class="hud-section" style="flex:1;">
+      <div class="hud-label">Engagement Score&trade;</div>
+      <div id="suspicion-track"><div id="suspicion-fill"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:#8BA7C7;margin-top:2px;">
+        <span>THRIVING</span><span id="suspicion-pct">0%</span><span>TERMINATED</span>
+      </div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label">Inventory</div>
+      <div id="inventory">
+        <div class="inv-slot" id="slot0" onclick="selectItem(0)"><span class="inv-emoji" id="emoji0"></span><div class="inv-tooltip" id="tip0"></div></div>
+        <div class="inv-slot" id="slot1" onclick="selectItem(1)"><span class="inv-emoji" id="emoji1"></span><div class="inv-tooltip" id="tip1"></div></div>
+        <div class="inv-slot" id="slot2" onclick="selectItem(2)"><span class="inv-emoji" id="emoji2"></span><div class="inv-tooltip" id="tip2"></div></div>
+        <div class="inv-slot" id="slot3" onclick="selectItem(3)"><span class="inv-emoji" id="emoji3"></span><div class="inv-tooltip" id="tip3"></div></div>
+      </div>
+    </div>
+    <div id="room-name">Open Plan Area</div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// PIXEL ART ASSET LOADER
+// ============================================================
+const ASSETS = {};
+let assetsLoaded = 0;
+let assetsTotal = 0;
+
+function loadImg(key, src) {
+  assetsTotal++;
+  const img = new Image();
+  img.onload = () => { assetsLoaded++; };
+  img.onerror = () => { assetsLoaded++; console.warn('Failed to load:', key, src); };
+  img.src = src;
+  ASSETS[key] = img;
+}
+
+// Floor / wall tiles
+loadImg('floor1', 'assets/tiles/tile_0.png');
+loadImg('floor2', 'assets/tiles/tile_1.png');
+loadImg('wall', 'assets/tiles/tile_2.png');
+loadImg('carpet', 'assets/tiles/tile_3.png');
+loadImg('carpet_wellness', 'assets/tiles/tile_4.png');
+loadImg('floor_server', 'assets/tiles/tile_5.png');
+
+// Map objects
+loadImg('obj_desk', 'assets/objects/desk.png');
+loadImg('obj_player_desk', 'assets/objects/player_desk.png');
+loadImg('obj_chair', 'assets/objects/chair.png');
+loadImg('obj_plant', 'assets/objects/plant.png');
+loadImg('obj_printer', 'assets/objects/printer.png');
+loadImg('obj_server', 'assets/objects/server.png');
+loadImg('obj_whiteboard', 'assets/objects/whiteboard.png');
+loadImg('obj_beanbag', 'assets/objects/beanbag.png');
+loadImg('obj_counter', 'assets/objects/counter.png');
+loadImg('obj_fridge', 'assets/objects/fridge.png');
+loadImg('obj_keurig', 'assets/objects/keurig.png');
+loadImg('obj_shelf', 'assets/objects/shelf.png');
+loadImg('obj_cabinet', 'assets/objects/cabinet.png');
+loadImg('obj_door', 'assets/objects/door.png');
+loadImg('obj_elevator', 'assets/objects/elevator.png');
+loadImg('obj_window', 'assets/objects/window.png');
+loadImg('obj_vent', 'assets/objects/vent.png');
+
+// Characters (4 directions each)
+['south','east','north','west'].forEach(dir => {
+  loadImg('player_'+dir, 'assets/characters/player_'+dir+'.png');
+  loadImg('derek_'+dir, 'assets/characters/derek_'+dir+'.png');
+  loadImg('karen_'+dir, 'assets/characters/karen_'+dir+'.png');
+  loadImg('jess_'+dir, 'assets/characters/jess_'+dir+'.png');
+  loadImg('chad_'+dir, 'assets/characters/chad_'+dir+'.png');
+});
+
+function isAssetReady(key) {
+  return ASSETS[key] && ASSETS[key].complete && ASSETS[key].naturalWidth > 0;
+}
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+const TILE = 32;
+const COLS = 25;
+const ROWS = 15;
+const CW = 800;
+const CH = 480;
+
+const COL = {
+  floor1: '#E8E4DE', floor2: '#E0DCD4',
+  wall: '#908880', wallTop: '#B0AAA0', wallFace: '#7A756E',
+  desk: '#9B8D7B', deskTop: '#BDB0A0',
+  chair: '#6070A0', chairSeat: '#8090C0',
+  door: '#C0A060', doorFrame: '#A08040',
+  window: '#A8D4F0', windowFrame: '#607080',
+  plant: '#4A8A4A', plantDark: '#3A6A3A', pot: '#8B6040',
+  server: '#404060', serverFace: '#303050',
+  printer: '#C0C0C0', printerDark: '#909090',
+  whiteboard: '#F0F0E8',
+  beanbag: '#9060A0', beanbagLight: '#B080C0',
+  counter: '#B0A090', counterTop: '#C8B8A8',
+  fridge: '#D0D0D0', fridgeDark: '#A0A0A0',
+  keurig: '#303030',
+  carpet1: '#C8C0B4', carpet2: '#C0B8AC',
+  shelfWood: '#8A7A68', shelfItems: ['#C04040','#4040C0','#40A040','#C0A040'],
+  vent: '#A0A0A0', ventSlat: '#707070',
+  elevator: '#707070', elevatorGap: '#404040',
+  cabinet: '#808888',
+};
+
+// Tile types
+const T = {
+  FLOOR:0, WALL:1, DESK:2, CHAIR:3, DOOR:4, WINDOW:5,
+  PLANT:6, SERVER:7, PRINTER:8, WHITEBOARD:9, BEANBAG:10,
+  COUNTER:11, FRIDGE:12, KEURIG:13, CARPET:14, SHELF:15,
+  VENT:16, ELEVATOR:17, CABINET:18, PLAYER_DESK:19,
+};
+
+// ============================================================
+// ROOM MAP BUILDERS
+// ============================================================
+function emptyRoom() {
+  const g = [];
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < COLS; c++) {
+      row.push((r===0||r===ROWS-1||c===0||c===COLS-1) ? T.WALL : T.FLOOR);
+    }
+    g.push(row);
+  }
+  return g;
+}
+
+function buildOpenPlan() {
+  const g = emptyRoom();
+  // Doors
+  g[0][12] = T.DOOR;  // north -> HR corridor
+  g[7][0] = T.DOOR;   // west -> kitchen
+  g[7][COLS-1] = T.DOOR; // east -> conference
+  g[ROWS-1][7] = T.DOOR; // south-west -> supply closet
+  g[ROWS-1][18] = T.DOOR; // south-east -> printer alcove
+
+  // Player's desk at (4,2) — clearly marked
+  g[2][4] = T.PLAYER_DESK;
+
+  // Desk clusters (with clear walkways between them)
+  // Row of desks at y=2, spaced apart
+  const deskCols = [8, 11, 15, 18, 21];
+  for (const c of deskCols) { g[2][c] = T.DESK; g[3][c] = T.CHAIR; }
+  // Row at y=5
+  for (const c of [4, 8, 11, 15, 18, 21]) { g[5][c] = T.DESK; g[6][c] = T.CHAIR; }
+  // Row at y=9
+  for (const c of [4, 8, 11, 15, 18, 21]) { g[9][c] = T.DESK; g[10][c] = T.CHAIR; }
+  // Row at y=12
+  for (const c of [4, 8, 11, 15, 18]) { g[12][c] = T.DESK; g[11][c] = T.CHAIR; }
+
+  // Plants
+  g[1][1] = T.PLANT; g[1][23] = T.PLANT; g[13][1] = T.PLANT; g[13][23] = T.PLANT;
+  return g;
+}
+
+function buildKitchen() {
+  const g = emptyRoom();
+  g[7][COLS-1] = T.DOOR;
+  // Counter + appliances along north wall
+  for (let c = 2; c <= 12; c++) g[1][c] = T.COUNTER;
+  g[1][5] = T.FRIDGE; g[1][9] = T.KEURIG;
+  // Table in center
+  for (let c = 6; c <= 12; c++) g[6][c] = T.DESK;
+  g[5][7] = T.CHAIR; g[5][9] = T.CHAIR; g[5][11] = T.CHAIR;
+  g[7][7] = T.CHAIR; g[7][9] = T.CHAIR; g[7][11] = T.CHAIR;
+  // Plants
+  g[1][1] = T.PLANT; g[13][23] = T.PLANT;
+  // Fridge notes (poster)
+  g[1][16] = T.CABINET;
+  return g;
+}
+
+function buildConference() {
+  const g = emptyRoom();
+  g[7][0] = T.DOOR;
+  // Glass walls left side (gap at row 7 for door access)
+  for (let r = 2; r <= 12; r++) { if (r !== 7) g[r][1] = T.WINDOW; }
+  // Big table
+  for (let r = 4; r <= 10; r++) { g[r][8] = T.DESK; g[r][16] = T.DESK; }
+  for (let c = 8; c <= 16; c++) { g[4][c] = T.DESK; g[10][c] = T.DESK; }
+  // Carpet inside table
+  for (let r = 5; r <= 9; r++) for (let c = 9; c <= 15; c++) g[r][c] = T.CARPET;
+  // Chairs around outside
+  for (let c = 9; c <= 15; c++) { g[3][c] = T.CHAIR; g[11][c] = T.CHAIR; }
+  for (let r = 5; r <= 9; r++) { g[r][7] = T.CHAIR; g[r][17] = T.CHAIR; }
+  // Whiteboard + TV
+  g[2][22] = T.WHITEBOARD; g[3][22] = T.WHITEBOARD;
+  g[1][12] = T.CABINET; // tv stand-in
+  return g;
+}
+
+function buildHRCorridor() {
+  const g = emptyRoom();
+  g[0][12] = T.DOOR;      // north -> elevator lobby
+  g[ROWS-1][12] = T.DOOR; // south -> open plan
+  g[7][COLS-1] = T.DOOR;  // east -> manager office
+  // Carpet runner
+  for (let r = 1; r <= 13; r++) { g[r][11] = T.CARPET; g[r][12] = T.CARPET; g[r][13] = T.CARPET; }
+  // Motivational posters (cabinets on walls)
+  for (let r = 2; r <= 12; r += 3) { g[r][2] = T.CABINET; g[r][22] = T.CABINET; }
+  // Vent from server room
+  g[ROWS-1][20] = T.VENT;
+  return g;
+}
+
+function buildManagerOffice() {
+  const g = emptyRoom();
+  g[7][0] = T.DOOR;
+  // Big L-desk
+  for (let c = 18; c <= 23; c++) g[2][c] = T.DESK;
+  for (let r = 2; r <= 5; r++) g[r][23] = T.DESK;
+  g[3][21] = T.CHAIR;
+  // Bookshelf
+  for (let r = 2; r <= 6; r++) g[r][1] = T.SHELF;
+  // Carpet
+  for (let r = 4; r <= 10; r++) for (let c = 6; c <= 16; c++) g[r][c] = T.CARPET;
+  // Plants
+  g[1][1] = T.PLANT; g[13][23] = T.PLANT;
+  // Couch
+  for (let c = 6; c <= 10; c++) g[12][c] = T.BEANBAG;
+  return g;
+}
+
+function buildElevLobby() {
+  const g = emptyRoom();
+  g[ROWS-1][12] = T.DOOR;
+  // Elevator doors
+  for (let c = 9; c <= 11; c++) g[1][c] = T.ELEVATOR;
+  for (let c = 13; c <= 15; c++) g[1][c] = T.ELEVATOR;
+  // Badge scanners
+  g[3][10] = T.CABINET; g[3][14] = T.CABINET;
+  // Waiting chairs
+  g[10][4] = T.CHAIR; g[10][5] = T.CHAIR; g[10][6] = T.CHAIR;
+  g[10][18] = T.CHAIR; g[10][19] = T.CHAIR; g[10][20] = T.CHAIR;
+  // Carpet
+  for (let r = 4; r <= 9; r++) for (let c = 8; c <= 16; c++) g[r][c] = T.CARPET;
+  // Plants
+  g[1][2] = T.PLANT; g[1][22] = T.PLANT;
+  return g;
+}
+
+function buildSupplyCloset() {
+  const g = emptyRoom();
+  g[0][7] = T.DOOR;       // north -> open plan
+  g[7][COLS-1] = T.DOOR;  // east -> wellness room
+  // Shelves (with gaps at doors)
+  for (let c = 2; c <= 22; c++) { if (c !== 7) g[1][c] = T.SHELF; }
+  for (let r = 3; r <= 12; r++) { g[r][1] = T.SHELF; if (r !== 7) g[r][23] = T.SHELF; }
+  // More shelves in rows
+  for (let c = 5; c <= 10; c++) g[5][c] = T.SHELF;
+  for (let c = 14; c <= 19; c++) g[5][c] = T.SHELF;
+  return g;
+}
+
+function buildWellnessRoom() {
+  const g = emptyRoom();
+  g[7][0] = T.DOOR;    // west -> supply closet
+  g[0][12] = T.VENT;   // north -> server room (needs lanyard)
+  // All carpet
+  for (let r = 1; r <= 13; r++) for (let c = 1; c <= 23; c++) if (g[r][c]===T.FLOOR) g[r][c] = T.CARPET;
+  // Beanbags scattered
+  g[3][5] = T.BEANBAG; g[3][12] = T.BEANBAG; g[3][19] = T.BEANBAG;
+  g[7][8] = T.BEANBAG; g[7][16] = T.BEANBAG;
+  g[11][5] = T.BEANBAG; g[11][12] = T.BEANBAG; g[11][19] = T.BEANBAG;
+  // Plants
+  g[1][1] = T.PLANT; g[1][23] = T.PLANT; g[13][1] = T.PLANT; g[13][23] = T.PLANT;
+  return g;
+}
+
+function buildServerRoom() {
+  const g = emptyRoom();
+  g[ROWS-1][12] = T.VENT; // south -> wellness room
+  g[0][20] = T.DOOR;      // north -> HR corridor
+  // All dark carpet
+  for (let r = 1; r <= 13; r++) for (let c = 1; c <= 23; c++) if (g[r][c]===T.FLOOR) g[r][c] = T.CARPET;
+  // Server racks in columns with walkable paths
+  const rackCols = [3, 7, 11, 15, 19];
+  for (const c of rackCols) for (let r = 2; r <= 12; r++) g[r][c] = T.SERVER;
+  // Terminal
+  g[12][22] = T.CABINET;
+  return g;
+}
+
+function buildPrinterAlcove() {
+  const g = emptyRoom();
+  g[0][18] = T.DOOR;
+  // Printer
+  g[6][12] = T.PRINTER; g[7][12] = T.PRINTER;
+  // Paper shelves
+  g[6][14] = T.SHELF; g[7][14] = T.SHELF;
+  // Side desk
+  g[6][8] = T.DESK; g[7][8] = T.CHAIR;
+  // Plant
+  g[13][1] = T.PLANT;
+  return g;
+}
+
+// ============================================================
+// ROOMS
+// ============================================================
+const ROOMS = {};
+function initRooms() {
+  ROOMS.openPlan = {
+    name: "Open Plan Area", tiles: buildOpenPlan(),
+    // Each exit: doorX/doorY = where the door tile is; spawnX/spawnY = where player appears in destination
+    exits: [
+      { doorX:12, doorY:0,  to:'hrCorridor',   spawnX:12, spawnY:13 },
+      { doorX:0,  doorY:7,  to:'kitchen',      spawnX:23, spawnY:7 },
+      { doorX:24, doorY:7,  to:'conference',    spawnX:1,  spawnY:7 },
+      { doorX:7,  doorY:14, to:'supplyCloset',  spawnX:7,  spawnY:1 },
+      { doorX:18, doorY:14, to:'printerAlcove', spawnX:18, spawnY:1 },
+    ]
+  };
+  ROOMS.kitchen = {
+    name: "Kitchen / Break Room", tiles: buildKitchen(),
+    exits: [{ doorX:24, doorY:7, to:'openPlan', spawnX:1, spawnY:7 }]
+  };
+  ROOMS.conference = {
+    name: 'Conference Room "Synergy"', tiles: buildConference(),
+    exits: [{ doorX:0, doorY:7, to:'openPlan', spawnX:23, spawnY:7 }]
+  };
+  ROOMS.hrCorridor = {
+    name: "HR Corridor", tiles: buildHRCorridor(),
+    exits: [
+      { doorX:12, doorY:0,  to:'elevLobby',     spawnX:12, spawnY:13 },
+      { doorX:12, doorY:14, to:'openPlan',       spawnX:12, spawnY:1 },
+      { doorX:24, doorY:7,  to:'managerOffice',  spawnX:2,  spawnY:7, locked:'managerOfficeLocked' },
+      { doorX:20, doorY:14, to:'serverRoom',     spawnX:20, spawnY:1, isVent:true },
+    ]
+  };
+  ROOMS.managerOffice = {
+    name: "Manager's Office", tiles: buildManagerOffice(),
+    exits: [{ doorX:0, doorY:7, to:'hrCorridor', spawnX:23, spawnY:7 }]
+  };
+  ROOMS.elevLobby = {
+    name: "Elevator Lobby", tiles: buildElevLobby(),
+    exits: [{ doorX:12, doorY:14, to:'hrCorridor', spawnX:12, spawnY:1 }]
+  };
+  ROOMS.supplyCloset = {
+    name: "Supply Closet", tiles: buildSupplyCloset(),
+    exits: [
+      { doorX:7,  doorY:0, to:'openPlan',     spawnX:7,  spawnY:13 },
+      { doorX:24, doorY:7, to:'wellnessRoom', spawnX:1,  spawnY:7 },
+    ]
+  };
+  ROOMS.wellnessRoom = {
+    name: "The Wellness Room", tiles: buildWellnessRoom(),
+    exits: [
+      { doorX:0,  doorY:7, to:'supplyCloset', spawnX:23, spawnY:7 },
+      { doorX:12, doorY:0, to:'serverRoom',   spawnX:12, spawnY:13, requiresItem:'lanyard', isVent:true },
+    ]
+  };
+  ROOMS.serverRoom = {
+    name: "Server Room", tiles: buildServerRoom(),
+    exits: [
+      { doorX:12, doorY:14, to:'wellnessRoom', spawnX:12, spawnY:1, isVent:true },
+      { doorX:20, doorY:0,  to:'hrCorridor',   spawnX:20, spawnY:13 },
+    ]
+  };
+  ROOMS.printerAlcove = {
+    name: "Printer Alcove", tiles: buildPrinterAlcove(),
+    exits: [{ doorX:18, doorY:0, to:'openPlan', spawnX:18, spawnY:13 }]
+  };
+}
+
+// ============================================================
+// ITEMS
+// ============================================================
+const ITEMS = {
+  cakeMemo:    { emoji:'📄', name:'Cake Memo',        desc:'A memo about cake in the kitchen. Chad would love this.' },
+  badge:       { emoji:'🪪', name:"Linda's Badge",    desc:'A forgotten badge from the fridge. Might work at the scanner...' },
+  paperclip:   { emoji:'📎', name:'Paperclip',        desc:'A trusty paperclip. Good for picking locks.' },
+  plaque:      { emoji:'🏆', name:'EotM Plaque',      desc:'Employee of the Month plaque. Derek will stop to admire this.' },
+  lanyard:     { emoji:'🔗', name:'Lanyard',          desc:"Can prop open the wellness room's vent." },
+  elevKeycard: { emoji:'💳', name:'Override Keycard',  desc:'Elevator override keycard. Your way out.' },
+  serverCode:  { emoji:'🔑', name:'Server Code',      desc:"Access code for the server room. Jess's parting gift." },
+};
+
+// ============================================================
+// SLACK MESSAGES
+// ============================================================
+const SLACK_MSGS = [
+  { sender:'Derek', channel:'#general', msg:"Quick pulse check — who's excited about our new open floor plan?" },
+  { sender:'Karen (HR)', channel:'#compliance', msg:'Reminder: Desk time is face time. Calendar visibility is mandatory.' },
+  { sender:'All-Staff', channel:'#announcements', msg:'Reminder: lunch is for recharging, not leaving the building.' },
+  { sender:'Derek', channel:'#team', msg:'Love the energy today. Really feeling the in-office magic.' },
+  { sender:'Karen (HR)', channel:'DM', msg:'Hey! Do you have 5 min for a quick sync?' },
+  { sender:'All-Staff', channel:'#general', msg:'The wellness room is for BRIEF recharging only. Max 15 mins.' },
+  { sender:'Derek', channel:'#team', msg:"Who wants to stay late for some optional team bonding?" },
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let S = {};
+function resetState() {
+  S = {
+    running: false,
+    room: 'openPlan',
+    px: 6, py: 4,  // player position — in a clear walkway
+    pFacing: 'south',
+    time: 9*60,
+    suspicion: 0,
+    peakSuspicion: 0,
+    inventory: [null,null,null,null],
+    selItem: -1,
+    gameOver: false,
+    route: null,
+    flags: {
+      printerFixed: false, meetingEnded: false, jessSpoken: false,
+      managerOfficeLocked: true, badgeScannerOff: false,
+      wellnessVisited: false, derekDistracted: false, derekDistractTimer: 0,
+      serverAccessed: false,
+    },
+    npcs: {
+      derek: { room:'managerOffice', x:20, y:4, facing:'south', patIdx:0, frozen:0 },
+      karen: { room:'hrCorridor', x:12, y:8, facing:'south', patIdx:0 },
+      jess:  { room:'kitchen', x:14, y:10, facing:'south' },
+      chad:  { room:'conference', x:12, y:2, facing:'south' },
+    },
+    dialogue: false,
+    slackVisible: false,
+    slackCountdown: 55 + Math.random()*10,
+    printerActive: false,
+    printerSeq: [], printerInput: [], printerPhase: 'watching',
+    keys: {},
+    moveCd: 0,
+    interactCd: 0,
+    posterReads: {},
+    animFrame: 0,
+  };
+}
+resetState();
+
+// NPC patrol routes
+const PATROLS = {
+  derek: {
+    low: [
+      {room:'managerOffice',x:20,y:4},{room:'managerOffice',x:10,y:10},{room:'managerOffice',x:20,y:10},{room:'managerOffice',x:20,y:4},
+    ],
+    high: [
+      {room:'managerOffice',x:20,y:4},
+      {room:'hrCorridor',x:12,y:10},{room:'hrCorridor',x:12,y:3},
+      {room:'openPlan',x:12,y:4},{room:'openPlan',x:6,y:7},{room:'openPlan',x:20,y:7},
+      {room:'hrCorridor',x:12,y:10},
+      {room:'managerOffice',x:20,y:4},
+    ]
+  },
+  karen: {
+    low: [{room:'hrCorridor',x:12,y:3},{room:'hrCorridor',x:12,y:12}],
+    high: [
+      {room:'hrCorridor',x:12,y:3},{room:'hrCorridor',x:12,y:12},
+      {room:'openPlan',x:12,y:4},{room:'openPlan',x:20,y:8},
+      {room:'kitchen',x:10,y:7},
+      {room:'hrCorridor',x:12,y:3},
+    ]
+  }
+};
+
+// ============================================================
+// CANVAS
+// ============================================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mmCanvas = document.getElementById('minimapCanvas');
+const mmCtx = mmCanvas.getContext('2d');
+
+// ============================================================
+// INPUT
+// ============================================================
+document.addEventListener('keydown', e => {
+  S.keys[e.key] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  if ((e.key==='e'||e.key==='E') && S.running && !S.gameOver) tryInteract();
+  if (e.key==='Escape') { closeDialogue(); hideSlack(); }
+});
+document.addEventListener('keyup', e => { S.keys[e.key] = false; });
+
+// ============================================================
+// GAME LOOP
+// ============================================================
+let lastTime = 0, npcTimer = 0;
+
+function startGame() {
+  document.getElementById('title-screen').style.display = 'none';
+  resetState();
+  S.running = true;
+  lastTime = performance.now();
+  updateHUD();
+  requestAnimationFrame(gameLoop);
+}
+
+function resetGame() {
+  document.getElementById('end-screen').style.display = 'none';
+  document.getElementById('title-screen').style.display = 'flex';
+}
+
+function gameLoop(ts) {
+  if (!S.running || S.gameOver) return;
+  const dt = Math.min(ts - lastTime, 100);
+  lastTime = ts;
+  S.animFrame++;
+
+  if (!S.dialogue && !S.printerActive && !S.slackVisible) handleMovement(dt);
+
+  npcTimer += dt;
+  if (npcTimer >= 700) { npcTimer = 0; moveNPCs(); checkDetection(); }
+
+  if (!S.slackVisible && !S.dialogue) {
+    S.slackCountdown -= dt/1000;
+    if (S.slackCountdown <= 0) triggerSlack();
+  }
+
+  if (S.flags.derekDistracted) {
+    S.flags.derekDistractTimer -= dt;
+    if (S.flags.derekDistractTimer <= 0) { S.flags.derekDistracted = false; S.npcs.derek.frozen = 0; }
+  }
+
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+// MOVEMENT
+// ============================================================
+function handleMovement(dt) {
+  S.moveCd -= dt;
+  if (S.moveCd > 0) return;
+  let dx=0, dy=0;
+  if (S.keys['ArrowUp']||S.keys['w']||S.keys['W'])    { dy=-1; S.pFacing='north'; }
+  else if (S.keys['ArrowDown']||S.keys['s']||S.keys['S'])  { dy=1;  S.pFacing='south'; }
+  else if (S.keys['ArrowLeft']||S.keys['a']||S.keys['A'])  { dx=-1; S.pFacing='west'; }
+  else if (S.keys['ArrowRight']||S.keys['d']||S.keys['D']) { dx=1;  S.pFacing='east'; }
+  if (!dx && !dy) return;
+
+  const nx = S.px+dx, ny = S.py+dy;
+  const room = ROOMS[S.room];
+  const tiles = room.tiles;
+
+  // Check exit: is (nx,ny) a door/vent tile that matches an exit?
+  const exit = findExit(room, nx, ny);
+  if (exit) {
+    handleExit(exit);
+    S.moveCd = 200;
+    return;
+  }
+
+  if (!walkable(tiles, nx, ny)) return;
+
+  // Wellness room time trap on first real entry
+  if (S.room==='wellnessRoom' && !S.flags.wellnessVisited) {
+    S.flags.wellnessVisited = true;
+    showDialogue('Wellness Room',
+      'Recharge & Return! The beanbag looks incredibly inviting. You feel time slipping away...',
+      [
+        {label:'Leave immediately', cb:()=>closeDialogue()},
+        {label:'Sink into beanbag (-60 min)', cb:()=>{ advanceTime(60); addSuspicion(-5); closeDialogue(); toast('You lost an hour in that beanbag.'); }}
+      ]);
+  }
+
+  S.px = nx; S.py = ny;
+  S.moveCd = 130;
+
+  // Suspicion tick when away from desk
+  if (S.room !== 'openPlan' && Math.random() < 0.08) addSuspicion(2);
+}
+
+function findExit(room, x, y) {
+  const tile = room.tiles[y] && room.tiles[y][x];
+  if (tile !== T.DOOR && tile !== T.VENT) return null;
+  for (const ex of room.exits) {
+    if (ex.doorX === x && ex.doorY === y) return ex;
+  }
+  return null;
+}
+
+function walkable(tiles, x, y) {
+  if (x<0||x>=COLS||y<0||y>=ROWS) return false;
+  const t = tiles[y][x];
+  return t===T.FLOOR || t===T.CARPET || t===T.DOOR || t===T.VENT;
+}
+
+function handleExit(exit) {
+  // Locked manager office?
+  if (exit.locked === 'managerOfficeLocked' && S.flags.managerOfficeLocked) {
+    if (hasItem('paperclip')) {
+      showDialogue("Manager's Office",
+        "The door is locked. Your paperclip might do the trick...",
+        [
+          {label:'Pick the lock (10 min)', cb:()=>{
+            removeItem('paperclip');
+            S.flags.managerOfficeLocked = false;
+            advanceTime(10);
+            closeDialogue();
+            doTransition(exit);
+            toast('Lock picked. You\'re in.');
+          }},
+          {label:'Walk away', cb:()=>closeDialogue()}
+        ]);
+    } else {
+      showDialogue("Manager's Office",
+        "Derek's door is locked. You need something to pick it — a paperclip, maybe.",
+        [{label:'Walk away', cb:()=>closeDialogue()}]);
+    }
+    return;
+  }
+
+  // Vent requiring lanyard?
+  if (exit.requiresItem === 'lanyard') {
+    if (!hasItem('lanyard')) {
+      showDialogue('Vent',
+        'The vent is here but it keeps swinging shut. You need something to prop it open.',
+        [{label:'Nevermind', cb:()=>closeDialogue()}]);
+      return;
+    }
+    toast('You use the lanyard to prop the vent open.');
+  }
+
+  doTransition(exit);
+}
+
+function doTransition(exit) {
+  S.room = exit.to;
+  S.px = exit.spawnX;
+  S.py = exit.spawnY;
+  advanceTime(10);
+
+  if (exit.to === 'wellnessRoom') S.flags.wellnessVisited = false;
+
+  if (exit.to === 'serverRoom' && !S.flags.serverAccessed) {
+    if (!hasItem('serverCode')) {
+      showDialogue('Server Room',
+        'A keypad glows red. You need an access code.',
+        [{label:'Back out', cb:()=>{
+          closeDialogue();
+          // Return to previous room
+          S.room = 'wellnessRoom'; S.px = 12; S.py = 12;
+        }}]);
+      return;
+    }
+    toast('Access code accepted. You\'re in.');
+    S.flags.serverAccessed = true;
+  }
+
+  updateHUD();
+}
+
+// ============================================================
+// INTERACTION
+// ============================================================
+function tryInteract() {
+  if (S.dialogue || S.printerActive || S.slackVisible) return;
+  if (S.interactCd > 0) return;
+  S.interactCd = 400;
+  setTimeout(()=>{S.interactCd=0;}, 400);
+
+  // Check NPCs first
+  if (nearNPC('jess'))  { interactJess();  return; }
+  if (nearNPC('chad'))  { interactChad();  return; }
+  if (nearNPC('derek')) { interactDerek(); return; }
+  if (nearNPC('karen')) { interactKaren(); return; }
+
+  // Check adjacent tiles
+  const adj = getAdjTiles();
+  for (const {x,y,t} of adj) {
+    if (t===T.PLAYER_DESK) { interactPlayerDesk(); return; }
+    if (t===T.DESK && S.room==='managerOffice') { interactManagerDesk(); return; }
+    if (t===T.DESK && S.room==='openPlan') { interactGenericDesk(); return; }
+    if (t===T.PRINTER && S.room==='printerAlcove') { interactPrinter(); return; }
+    if (t===T.WHITEBOARD) { interactWhiteboard(); return; }
+    if (t===T.FRIDGE) { interactFridge(); return; }
+    if (t===T.KEURIG) { interactKeurig(); return; }
+    if (t===T.SHELF && S.room==='supplyCloset') { interactSupplyShelf(); return; }
+    if (t===T.CABINET && S.room==='elevLobby') { interactElevator(); return; }
+    if (t===T.ELEVATOR) { interactElevator(); return; }
+    if (t===T.CABINET && S.room==='hrCorridor') { interactPoster(x,y); return; }
+    if (t===T.CABINET && S.room==='serverRoom') { interactServerTerminal(); return; }
+    if (t===T.SERVER && S.room==='serverRoom') { interactServerTerminal(); return; }
+  }
+
+  // Use selected item
+  if (S.selItem >= 0 && S.inventory[S.selItem]) useSelectedItem();
+}
+
+function getAdjTiles() {
+  const tiles = ROOMS[S.room].tiles;
+  const dirs = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+  const r = [];
+  for (const d of dirs) {
+    const nx=S.px+d.x, ny=S.py+d.y;
+    if (nx>=0&&nx<COLS&&ny>=0&&ny<ROWS) r.push({x:nx, y:ny, t:tiles[ny][nx]});
+  }
+  return r;
+}
+
+function nearNPC(id) {
+  const n = S.npcs[id];
+  return n.room===S.room && Math.abs(n.x-S.px)<=2 && Math.abs(n.y-S.py)<=2;
+}
+
+// --- Individual interactions ---
+
+function interactPlayerDesk() {
+  showDialogue('Your Desk',
+    "Your laptop shows 47 unread Slack messages and a Jira board with MORE tickets than yesterday.",
+    [
+      {label:'Look busy (-15 suspicion, +15 min)', cb:()=>{
+        addSuspicion(-15); advanceTime(15); closeDialogue();
+        toast('You type furiously about nothing. Suspicion drops.');
+      }},
+      {label:'Check drawer', cb:()=>{
+        closeDialogue();
+        if (!hasItem('cakeMemo')) { addToInventory('cakeMemo'); toast('Found: Cake Memo from last week\'s all-hands.'); }
+        else toast('Just old sticky notes and a dead pen.');
+      }},
+      {label:'Walk away', cb:()=>closeDialogue()}
+    ]);
+}
+
+function interactGenericDesk() {
+  showDialogue('Desk', "Someone else's identical problems. Their screensaver says \"TEAMWORK.\"",
+    [{label:'Walk away', cb:()=>closeDialogue()}]);
+}
+
+function interactManagerDesk() {
+  if (hasItem('elevKeycard')) {
+    showDialogue("Derek's Desk", "You already took the keycard. Better get moving.", [{label:'Go', cb:()=>closeDialogue()}]);
+    return;
+  }
+  showDialogue("Derek's Desk",
+    "Monolithic mahogany. Motivational quotes everywhere. A plaque reading 'Leadership is a Privilege.' And there — the elevator override keycard.",
+    [
+      {label:'Take the keycard', cb:()=>{
+        addToInventory('elevKeycard'); advanceTime(5);
+        S.route = S.route || 'keycard';
+        closeDialogue(); toast('Elevator Override Keycard acquired.');
+      }},
+      {label:'Leave it', cb:()=>closeDialogue()}
+    ]);
+}
+
+function interactJess() {
+  advanceTime(10);
+  if (!S.flags.jessSpoken) {
+    S.flags.jessSpoken = true;
+    addToInventory('serverCode');
+    showDialogue('Jess',
+      "They took away remote work and replaced it with a kombucha tap. I've never felt more valued.\n\nListen — server room code is 4471. The vent in the Wellness Room connects up there. Use a lanyard to prop it open. Get out of here.",
+      [{label:'Thanks, Jess.', cb:()=>closeDialogue()}]);
+  } else {
+    showDialogue('Jess', "Still here? GO. Don't let them take you too.", [{label:'...okay', cb:()=>closeDialogue()}]);
+  }
+}
+
+function interactChad() {
+  if (S.flags.meetingEnded) {
+    showDialogue('Chad', "Incredible session! Really moved the needle on our Q2 synergies!", [{label:'Sure.', cb:()=>closeDialogue()}]);
+    return;
+  }
+  if (hasItem('cakeMemo')) {
+    showDialogue('Chad',
+      "Wait — CAKE in the kitchen?! TEAM SYNERGY BREAK, everyone! Meeting adjourned!",
+      [{label:'Hand over the memo', cb:()=>{
+        removeItem('cakeMemo');
+        S.flags.meetingEnded = true;
+        S.npcs.chad = {room:'kitchen', x:8, y:9, facing:'south'};
+        addSuspicion(-10); advanceTime(10); closeDialogue();
+        toast('The meeting erupts. Chad leads the charge to the kitchen.');
+      }}]);
+  } else {
+    showDialogue('Chad',
+      "Hey! Great timing — you should join us. We're deep in the core KPI alignment framework. Should only be another... 3 hours.",
+      [
+        {label:'Join (-30 min, -10 suspicion)', cb:()=>{ advanceTime(30); addSuspicion(-10); closeDialogue(); toast('30 minutes of your life, gone.'); }},
+        {label:'Politely decline', cb:()=>closeDialogue()}
+      ]);
+  }
+}
+
+function interactDerek() {
+  advanceTime(5);
+  if (S.suspicion >= 60) {
+    showDialogue('Derek',
+      "Hey. I've been noticing some patterns in your engagement. Let's schedule a touch-base.",
+      [{label:'Sounds great!', cb:()=>{ addSuspicion(5); advanceTime(10); closeDialogue(); }}]);
+  } else {
+    showDialogue('Derek',
+      "Big things happening today. Really feeling the in-office energy. You feel it too, right?",
+      [
+        {label:'Absolutely, Derek.', cb:()=>{ addSuspicion(-5); closeDialogue(); }},
+        {label:'Sure.', cb:()=>closeDialogue()}
+      ]);
+  }
+}
+
+function interactKaren() {
+  advanceTime(30); addSuspicion(15);
+  showDialogue('Karen (HR)',
+    "Oh I'm SO glad I caught you! Quick check-in — how are you feeling about return-to-office? On a scale of 'thriving' to 'thriving more'?",
+    [{label:'Thriving! (lost 30 min)', cb:()=>closeDialogue()}]);
+}
+
+function interactPrinter() {
+  if (S.flags.printerFixed) {
+    showDialogue('Printer', "It's jammed again. The printer never truly heals.", [{label:'Walk away', cb:()=>closeDialogue()}]);
+    return;
+  }
+  showDialogue('Printer', "PAPER JAM DETECTED. Tray 2. Always tray 2.",
+    [
+      {label:'Fix it (mini-game)', cb:()=>{ closeDialogue(); startPrinterGame(); }},
+      {label:'Leave it', cb:()=>closeDialogue()}
+    ]);
+}
+
+function interactFridge() {
+  if (!hasItem('badge')) {
+    showDialogue('Break Room Fridge',
+      "Passive-aggressive sticky notes everywhere. 'LINDA — THIS IS NOT YOUR YOGURT.' Behind the kombucha — a badge. Linda's badge.",
+      [
+        {label:'Take the badge', cb:()=>{ addToInventory('badge'); advanceTime(5); closeDialogue(); toast("Linda's badge acquired."); }},
+        {label:'Leave it', cb:()=>closeDialogue()}
+      ]);
+  } else {
+    showDialogue('Fridge', "Just the sticky notes now. Linda's going to notice.", [{label:'Close', cb:()=>closeDialogue()}]);
+  }
+}
+
+function interactKeurig() {
+  showDialogue('Keurig', "You could make a coffee. It will taste exactly like nothing.",
+    [
+      {label:'Make coffee (+5 min)', cb:()=>{ advanceTime(5); closeDialogue(); toast('Warm. Technically coffee.'); }},
+      {label:'No time', cb:()=>closeDialogue()}
+    ]);
+}
+
+function interactSupplyShelf() {
+  const opts = [];
+  if (!hasItem('lanyard')) opts.push({label:'Take lanyard', cb:()=>{ addToInventory('lanyard'); toast('Lanyard acquired.'); closeDialogue(); }});
+  if (!hasItem('plaque')) opts.push({label:'Take EotM Plaque', cb:()=>{ addToInventory('plaque'); toast('Employee of the Month plaque acquired.'); closeDialogue(); }});
+  if (opts.length === 0) {
+    showDialogue('Supply Closet', "Shelves of printer paper and branded swag. Nothing else useful.", [{label:'Leave', cb:()=>closeDialogue()}]);
+  } else {
+    opts.push({label:'Leave', cb:()=>closeDialogue()});
+    showDialogue('Supply Closet', "Shelves of printer paper, toner, and branded swag. A lanyard. An 'Employee of the Month' plaque from 2019.", opts);
+  }
+}
+
+function interactWhiteboard() {
+  showDialogue('Whiteboard',
+    "A sprawling mind map. Center: 'SYNERGY.' Arrows to 'COLLABORATION,' 'INNOVATION,' 'GROWTH.' All arrows loop back to 'SYNERGY.'",
+    [{label:'Unsettling.', cb:()=>closeDialogue()}]);
+}
+
+function interactPoster(x, y) {
+  const key = `${x},${y}`;
+  S.posterReads[key] = (S.posterReads[key]||0) + 1;
+  const c = S.posterReads[key];
+  const posters = [
+    ["TEAMWORK MAKES THE DREAM WORK", "THERE IS NO ESCAPE"],
+    ["INNOVATION STARTS HERE", "IT STARTED HERE. IT ENDS HERE."],
+    ["YOUR BEST WORK HAPPENS IN PERSON", "YOU WILL STAY UNTIL THE WORK IS DONE"],
+    ["VANTAGE SOLUTIONS: BUILDING TOMORROW", "TOMORROW WILL LOOK EXACTLY LIKE TODAY"],
+    ["COLLABORATE. COMMUNICATE. CONQUER.", "COMPLY. CONFORM. CONTINUE."],
+    ["GREAT THINGS HAPPEN TOGETHER", "NO ONE LEAVES ALONE"],
+  ];
+  const p = posters[(x*7+y*3) % posters.length];
+  const text = c <= 1 ? `"${p[0]}"` : `"${p[0]}"\n\n[You look again. The text seems different now.]\n\n"${p[1]}"`;
+  showDialogue('Motivational Poster', text, [{label: c>1 ? '...okay.' : 'Inspiring.', cb:()=>closeDialogue()}]);
+}
+
+function interactElevator() {
+  if (S.flags.badgeScannerOff) { doWin('server'); return; }
+  if (hasItem('elevKeycard')) {
+    showDialogue('Elevator Scanner',
+      "The scanner glows red. You hold up the override keycard. It flickers... then turns green.",
+      [{label:'Escape!', cb:()=>{ closeDialogue(); doWin('keycard'); }}]);
+    return;
+  }
+  if (hasItem('badge')) {
+    showDialogue('Elevator Scanner',
+      "You scan Linda's badge. The scanner makes a sound like a dying printer.\n\n'INVALID: LINDA CHEN — TERMINATED MARCH 14'\n\nOh no, Linda.",
+      [{label:'...poor Linda.', cb:()=>{ addSuspicion(5); closeDialogue(); }}]);
+    return;
+  }
+  showDialogue('Elevator Scanner',
+    "The badge scanner glows an accusatory red. You need the override keycard from Derek's office, or disable it from the server room.",
+    [{label:'Back away', cb:()=>closeDialogue()}]);
+}
+
+function interactServerTerminal() {
+  if (S.flags.badgeScannerOff) {
+    showDialogue('Server Terminal', "Badge scanner: DISABLED. You're all set.", [{label:'Good.', cb:()=>closeDialogue()}]);
+    return;
+  }
+  showDialogue('Server Terminal',
+    "A terminal glows in the dark. Elevator badge scanner in the system.\n\n> ELEVATOR_SCANNER_01: ACTIVE",
+    [
+      {label:'Disable scanner', cb:()=>{
+        S.flags.badgeScannerOff = true;
+        S.route = S.route || 'server';
+        advanceTime(10); closeDialogue();
+        toast('Badge scanner DISABLED. The elevator is open.');
+      }},
+      {label:'Leave it', cb:()=>closeDialogue()}
+    ]);
+}
+
+function useSelectedItem() {
+  const id = S.inventory[S.selItem];
+  if (id === 'plaque' && S.room === S.npcs.derek.room) {
+    showDialogue('Plaque',
+      "You set the Employee of the Month plaque in Derek's path. He spots it and freezes, a single tear forming.",
+      [{label:'Deploy distraction', cb:()=>{
+        S.flags.derekDistracted = true;
+        S.flags.derekDistractTimer = 120000;
+        S.npcs.derek.frozen = 999;
+        closeDialogue();
+        toast("Derek is emotionally compromised. He won't move for 2 minutes.");
+      }}]);
+  } else {
+    toast(`${ITEMS[id].name}: ${ITEMS[id].desc}`);
+  }
+  S.selItem = -1; updateHUD();
+}
+
+// ============================================================
+// PRINTER MINI-GAME
+// ============================================================
+const PR_SYMS = ['▶','■','▲','●'];
+
+function startPrinterGame() {
+  S.printerActive = true;
+  S.printerSeq = [];
+  S.printerInput = [];
+  S.printerPhase = 'watching';
+  for (let i = 0; i < 4; i++) S.printerSeq.push(Math.floor(Math.random()*4));
+
+  const seq = document.getElementById('printer-sequence');
+  seq.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const b = document.createElement('button');
+    b.className = 'seq-btn'; b.textContent = PR_SYMS[i]; b.id = `pb${i}`;
+    b.onclick = () => printerInput(i);
+    seq.appendChild(b);
+  }
+  const prog = document.getElementById('printer-progress');
+  prog.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const d = document.createElement('div');
+    d.className = 'prog-dot'; d.id = `pd${i}`;
+    prog.appendChild(d);
+  }
+
+  document.getElementById('printer-game').style.display = 'block';
+  showPrinterSeq();
+}
+
+let printerShowTimer = null;
+function showPrinterSeq() {
+  document.getElementById('printer-prompt').textContent = 'Watch the sequence...';
+  let idx = 0;
+  function next() {
+    if (idx > 0) document.getElementById(`pb${S.printerSeq[idx-1]}`).classList.remove('highlight');
+    if (idx >= S.printerSeq.length) {
+      S.printerPhase = 'inputting';
+      document.getElementById('printer-prompt').textContent = 'Now repeat it!';
+      return;
+    }
+    document.getElementById(`pb${S.printerSeq[idx]}`).classList.add('highlight');
+    idx++;
+    printerShowTimer = setTimeout(next, 700);
+  }
+  next();
+}
+
+function printerInput(btnIdx) {
+  if (S.printerPhase !== 'inputting') return;
+  const expected = S.printerSeq[S.printerInput.length];
+  const btn = document.getElementById(`pb${btnIdx}`);
+  if (btnIdx === expected) {
+    btn.classList.add('correct');
+    setTimeout(()=>btn.classList.remove('correct'), 300);
+    document.getElementById(`pd${S.printerInput.length}`).classList.add('done');
+    S.printerInput.push(btnIdx);
+    if (S.printerInput.length >= 4) setTimeout(completePrinter, 400);
+  } else {
+    btn.classList.add('wrong');
+    setTimeout(()=>btn.classList.remove('wrong'), 400);
+    addSuspicion(10); advanceTime(5);
+    document.getElementById('printer-prompt').textContent = 'Wrong! Watch again...';
+    S.printerInput = [];
+    for (let i=0;i<4;i++) document.getElementById(`pd${i}`).classList.remove('done');
+    setTimeout(()=>{ S.printerPhase='watching'; showPrinterSeq(); }, 600);
+  }
+}
+
+function completePrinter() {
+  document.getElementById('printer-game').style.display = 'none';
+  S.printerActive = false;
+  S.flags.printerFixed = true;
+  addToInventory('paperclip');
+  advanceTime(15);
+  toast('JAM CLEARED. Paperclip acquired. The commotion draws Derek and Karen to investigate.');
+  // Draw NPCs to printer alcove temporarily
+  S.npcs.derek.room = 'printerAlcove'; S.npcs.derek.x = 16; S.npcs.derek.y = 8;
+  S.npcs.karen.room = 'printerAlcove'; S.npcs.karen.x = 16; S.npcs.karen.y = 10;
+  setTimeout(()=>{
+    S.npcs.derek.room = 'managerOffice'; S.npcs.derek.x = 20; S.npcs.derek.y = 4;
+    S.npcs.karen.room = 'hrCorridor'; S.npcs.karen.x = 12; S.npcs.karen.y = 8;
+  }, 25000);
+}
+
+function cancelPrinter() {
+  if (printerShowTimer) clearTimeout(printerShowTimer);
+  document.getElementById('printer-game').style.display = 'none';
+  S.printerActive = false;
+  addSuspicion(5);
+}
+
+// ============================================================
+// NPC MOVEMENT
+// ============================================================
+function moveNPCs() {
+  movePatrol('derek', S.suspicion>=30 ? 'high' : 'low');
+  movePatrol('karen', S.suspicion>=60 ? 'high' : 'low');
+}
+
+function movePatrol(id, level) {
+  const npc = S.npcs[id];
+  if (npc.frozen > 0) { npc.frozen--; return; }
+
+  // When patrol level changes, find closest waypoint in current room to avoid teleporting
+  if (npc._lastLevel !== level) {
+    npc._lastLevel = level;
+    const pat = PATROLS[id][level];
+    // Find a waypoint in the NPC's current room
+    let bestIdx = -1, bestDist = Infinity;
+    for (let i = 0; i < pat.length; i++) {
+      if (pat[i].room === npc.room) {
+        const d = Math.abs(pat[i].x - npc.x) + Math.abs(pat[i].y - npc.y);
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+      }
+    }
+    if (bestIdx >= 0) {
+      npc.patIdx = bestIdx;
+    } else {
+      // No waypoint in current room — pick first waypoint but stay put with a cooldown
+      npc.patIdx = 0;
+      npc.frozen = 8; // wait ~5.6s before teleporting
+      return;
+    }
+  }
+
+  const pat = PATROLS[id][level];
+  const tgt = pat[npc.patIdx % pat.length];
+  if (npc.room !== tgt.room) {
+    npc.room = tgt.room; npc.x = tgt.x; npc.y = tgt.y;
+    npc.patIdx = (npc.patIdx+1) % pat.length;
+    npc.frozen = 4; // brief pause after room transition (~2.8s cooldown)
+    return;
+  }
+  if (npc.x===tgt.x && npc.y===tgt.y) {
+    npc.patIdx = (npc.patIdx+1) % pat.length;
+    return;
+  }
+  stepToward(npc, tgt.x, tgt.y);
+}
+
+function stepToward(npc, tx, ty) {
+  const tiles = ROOMS[npc.room].tiles;
+  const dx = tx-npc.x, dy = ty-npc.y;
+  // Try primary direction first, fallback to secondary
+  const tryX = () => { const nx=npc.x+Math.sign(dx); if (walkable(tiles,nx,npc.y)){npc.x=nx; npc.facing=dx>0?'east':'west'; return true;} return false; };
+  const tryY = () => { const ny=npc.y+Math.sign(dy); if (walkable(tiles,npc.x,ny)){npc.y=ny; npc.facing=dy>0?'south':'north'; return true;} return false; };
+  if (Math.abs(dx) >= Math.abs(dy)) { if (!tryX()) tryY(); }
+  else { if (!tryY()) tryX(); }
+}
+
+function checkDetection() {
+  const derek = S.npcs.derek;
+  if (derek.room===S.room && !S.flags.derekDistracted) {
+    const dist = Math.abs(derek.x-S.px)+Math.abs(derek.y-S.py);
+    if (dist <= 4 && S.room !== 'openPlan' && hasLOS(derek)) {
+      addSuspicion(20);
+      toast("Derek spots you! 'Shouldn't you be at your desk?'");
+    }
+  }
+  const karen = S.npcs.karen;
+  if (karen.room===S.room) {
+    const dist = Math.abs(karen.x-S.px)+Math.abs(karen.y-S.py);
+    if (dist <= 3 && hasLOS(karen)) {
+      addSuspicion(15); advanceTime(30);
+      toast("Karen intercepts you! 30 min + 15 suspicion.");
+    }
+  }
+}
+
+function hasLOS(npc) {
+  if (npc.x!==S.px && npc.y!==S.py) return false;
+  const tiles = ROOMS[S.room].tiles;
+  if (npc.x===S.px) {
+    const mn=Math.min(npc.y,S.py), mx=Math.max(npc.y,S.py);
+    for (let y=mn+1;y<mx;y++) { const t=tiles[y][npc.x]; if (t===T.WALL||t===T.DESK||t===T.SERVER||t===T.SHELF) return false; }
+  } else {
+    const mn=Math.min(npc.x,S.px), mx=Math.max(npc.x,S.px);
+    for (let x=mn+1;x<mx;x++) { const t=tiles[npc.y][x]; if (t===T.WALL||t===T.DESK||t===T.SERVER||t===T.SHELF) return false; }
+  }
+  return true;
+}
+
+// ============================================================
+// SLACK
+// ============================================================
+let slackTimerInterval = null, slackTimeout = null;
+
+function triggerSlack() {
+  const msg = SLACK_MSGS[Math.floor(Math.random()*SLACK_MSGS.length)];
+  S.slackVisible = true;
+  S.slackCountdown = 40 + Math.random()*30;
+  document.getElementById('slack-sender').textContent = msg.sender;
+  document.getElementById('slack-header').textContent = msg.channel;
+  document.getElementById('slack-message').textContent = msg.msg;
+  document.getElementById('slack-popup').style.display = 'block';
+
+  const bar = document.getElementById('slack-timer-bar');
+  bar.style.width = '100%';
+  let remaining = 5;
+  if (slackTimerInterval) clearInterval(slackTimerInterval);
+  slackTimerInterval = setInterval(()=>{
+    remaining -= 0.1;
+    bar.style.width = Math.max(0, remaining/5*100) + '%';
+    if (remaining <= 0) {
+      clearInterval(slackTimerInterval);
+      if (S.slackVisible) {
+        addSuspicion(10);
+        hideSlack();
+        toast('+10 suspicion — you ignored a Slack ping.');
+      }
+    }
+  }, 100);
+}
+
+function replySlack() {
+  if (slackTimerInterval) clearInterval(slackTimerInterval);
+  if (slackTimeout) clearTimeout(slackTimeout);
+  addSuspicion(-2);
+  hideSlack();
+  toast('Replied to Slack. Engagement maintained.');
+}
+
+function hideSlack() {
+  S.slackVisible = false;
+  document.getElementById('slack-popup').style.display = 'none';
+}
+
+// ============================================================
+// INVENTORY
+// ============================================================
+function addToInventory(id) {
+  const i = S.inventory.indexOf(null);
+  if (i===-1) { toast('Inventory full!'); return false; }
+  S.inventory[i] = id;
+  updateHUD();
+  return true;
+}
+function removeItem(id) {
+  const i = S.inventory.indexOf(id);
+  if (i!==-1) S.inventory[i] = null;
+  updateHUD();
+}
+function hasItem(id) { return S.inventory.includes(id); }
+function selectItem(slot) {
+  S.selItem = (slot===S.selItem || !S.inventory[slot]) ? -1 : slot;
+  updateHUD();
+}
+
+// ============================================================
+// DIALOGUE
+// ============================================================
+function showDialogue(speaker, text, options) {
+  S.dialogue = true;
+  document.getElementById('dialogue-speaker').textContent = speaker;
+  document.getElementById('dialogue-text').textContent = text;
+  const optDiv = document.getElementById('dialogue-options');
+  optDiv.innerHTML = '';
+  for (const opt of options) {
+    const b = document.createElement('button');
+    b.className = 'dialogue-btn';
+    b.textContent = opt.label;
+    b.onclick = opt.cb;
+    optDiv.appendChild(b);
+  }
+  document.getElementById('dialogue-box').style.display = 'block';
+}
+function closeDialogue() {
+  S.dialogue = false;
+  document.getElementById('dialogue-box').style.display = 'none';
+}
+
+// ============================================================
+// GAME TIME & SUSPICION
+// ============================================================
+function advanceTime(min) {
+  S.time += min;
+  if (S.time >= 18*60) doLoseClock();
+  updateHUD();
+}
+function addSuspicion(amt) {
+  S.suspicion = Math.max(0, Math.min(100, S.suspicion + amt));
+  if (S.suspicion > S.peakSuspicion) S.peakSuspicion = S.suspicion;
+  if (S.suspicion >= 100) doLoseSuspicion();
+  updateHUD();
+}
+
+// ============================================================
+// HUD
+// ============================================================
+function updateHUD() {
+  const h = Math.floor(S.time/60), m = S.time%60;
+  const h12 = h>12?h-12:h, ap = h<12?'AM':'PM';
+  document.getElementById('hud-time').textContent = `${h12}:${m.toString().padStart(2,'0')} ${ap}`;
+
+  const pct = Math.round(S.suspicion);
+  document.getElementById('suspicion-pct').textContent = pct+'%';
+  const fill = document.getElementById('suspicion-fill');
+  fill.style.width = pct+'%';
+  fill.style.background = pct<30?'#4AD97A':pct<60?'#D9C84A':pct<80?'#D9A84A':'#D94A4A';
+
+  for (let i=0;i<4;i++) {
+    const slot = document.getElementById(`slot${i}`);
+    const emoji = document.getElementById(`emoji${i}`);
+    const tip = document.getElementById(`tip${i}`);
+    const item = S.inventory[i];
+    emoji.textContent = item ? ITEMS[item].emoji : '';
+    tip.textContent = item ? ITEMS[item].name : '';
+    slot.classList.toggle('selected', i===S.selItem);
+  }
+
+  document.getElementById('room-name').textContent = ROOMS[S.room]?.name || '';
+}
+
+// ============================================================
+// WIN / LOSE
+// ============================================================
+function fmtTime(t) { const h=Math.floor(t/60), m=t%60; return `${h>12?h-12:h}:${m.toString().padStart(2,'0')} ${h<12?'AM':'PM'}`; }
+
+function doWin(route) {
+  S.gameOver = true; S.route = route;
+  const es = document.getElementById('end-screen');
+  es.className = 'win'; es.style.display = 'flex';
+  document.getElementById('end-title').style.color = '#4A90D9';
+  document.getElementById('end-title').textContent = 'OUT OF OFFICE';
+  document.getElementById('end-body').innerHTML = `"You made it out. Today."<br><br>"See you tomorrow."`;
+  document.getElementById('end-stats').innerHTML =
+    `Escaped at ${fmtTime(S.time)} | Peak suspicion: ${Math.round(S.peakSuspicion)}% | Route: ${route==='keycard'?'Keycard':'Server Room'}<br><br><em style="font-size:11px;color:#4A6080">Tuesday is coming...</em>`;
+}
+function doLoseClock() {
+  if (S.gameOver) return; S.gameOver = true;
+  const es = document.getElementById('end-screen');
+  es.className = 'lose-time'; es.style.display = 'flex';
+  document.getElementById('end-title').style.color = '#D94A4A';
+  document.getElementById('end-title').textContent = 'MANDATORY FUN HOUR';
+  document.getElementById('end-body').innerHTML =
+    `A banner drops from the ceiling. Balloons appear.<br><br>"You didn't make it out in time. The team-building exercise is... escape room themed."<br><br><em>The irony is not lost on you.</em>`;
+  document.getElementById('end-stats').textContent = `Peak suspicion: ${Math.round(S.peakSuspicion)}%`;
+}
+function doLoseSuspicion() {
+  if (S.gameOver) return; S.gameOver = true;
+  const es = document.getElementById('end-screen');
+  es.className = 'lose-suspicion'; es.style.display = 'flex';
+  document.getElementById('end-title').style.color = '#D94A4A';
+  document.getElementById('end-title').textContent = 'PERFORMANCE REVIEW';
+  document.getElementById('end-body').innerHTML =
+    `<em>"So... we've noticed some patterns in your engagement metrics."</em><br><br>"Let's talk about your future at Vantage Solutions."<br><br><em style="font-size:11px;color:#8B4040">The fluorescent light flickers. Derek does not blink.</em>`;
+  document.getElementById('end-stats').textContent = 'Engagement Score: 100% (critical)';
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTO = null;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.opacity = '1';
+  if (toastTO) clearTimeout(toastTO);
+  toastTO = setTimeout(()=>{t.style.opacity='0';}, 3500);
+}
+
+// ============================================================
+// RENDERING
+// ============================================================
+function render() {
+  const tiles = ROOMS[S.room].tiles;
+  ctx.clearRect(0,0,CW,CH);
+
+  // Room bg
+  ctx.fillStyle = '#E8E4DE';
+  ctx.fillRect(0,0,CW,CH);
+
+  // Tiles
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) drawTile(tiles[r][c], c*TILE, r*TILE, c, r);
+
+  // NPCs
+  for (const [id, npc] of Object.entries(S.npcs)) {
+    if (npc.room===S.room) drawNPC(npc, id);
+  }
+
+  // Player
+  drawPlayer();
+
+  // Suspicion vignette
+  if (S.suspicion > 50) {
+    const a = (S.suspicion-50)/100;
+    const grad = ctx.createRadialGradient(CW/2,CH/2,80, CW/2,CH/2,CW*0.65);
+    grad.addColorStop(0,'rgba(180,0,0,0)');
+    grad.addColorStop(1,`rgba(180,0,0,${a*0.35})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,CW,CH);
+  }
+
+  // Interaction hints
+  if (!S.dialogue && !S.printerActive && !S.slackVisible) drawHints();
+
+  // Minimap
+  drawMinimap();
+}
+
+function drawTile(type, x, y, col, row) {
+  const alt = (col+row)%2;
+  ctx.imageSmoothingEnabled = false;
+
+  // Helper: draw a floor background tile for this room context
+  function drawFloorBg() {
+    const floorKey = alt ? 'floor1' : 'floor2';
+    if (isAssetReady(floorKey)) {
+      ctx.drawImage(ASSETS[floorKey], x, y, TILE, TILE);
+    } else {
+      ctx.fillStyle = alt ? COL.floor1 : COL.floor2;
+      ctx.fillRect(x,y,TILE,TILE);
+    }
+  }
+
+  // Helper: draw a wall background tile
+  function drawWallBg() {
+    if (isAssetReady('wall')) {
+      ctx.drawImage(ASSETS['wall'], x, y, TILE, TILE);
+    } else {
+      ctx.fillStyle = COL.wallTop;
+      ctx.fillRect(x,y,TILE,TILE);
+      ctx.fillStyle = COL.wall;
+      ctx.fillRect(x+1,y+1,TILE-2,TILE-8);
+    }
+  }
+
+  // Helper: draw a carpet background tile
+  function drawCarpetBg() {
+    let carpetKey;
+    if (S.room === 'serverRoom') carpetKey = 'floor_server';
+    else if (S.room === 'wellnessRoom') carpetKey = 'carpet_wellness';
+    else carpetKey = 'carpet';
+    if (isAssetReady(carpetKey)) {
+      ctx.drawImage(ASSETS[carpetKey], x, y, TILE, TILE);
+    } else {
+      ctx.fillStyle = S.room==='serverRoom' ? '#505068' :
+                      S.room==='wellnessRoom' ? '#C8B8D8' :
+                      (alt ? COL.carpet1 : COL.carpet2);
+      ctx.fillRect(x,y,TILE,TILE);
+    }
+  }
+
+  // Helper: try to draw a pixel art object; returns true if drawn
+  function tryDrawObj(key) {
+    if (isAssetReady(key)) {
+      ctx.drawImage(ASSETS[key], x, y, TILE, TILE);
+      return true;
+    }
+    return false;
+  }
+
+  switch (type) {
+    case T.FLOOR:
+      drawFloorBg();
+      break;
+    case T.WALL:
+      drawWallBg();
+      break;
+    case T.DESK:
+      drawFloorBg();
+      if (!tryDrawObj('obj_desk')) {
+        ctx.fillStyle = COL.desk;
+        ctx.fillRect(x+2,y+4,TILE-4,TILE-8);
+        ctx.fillStyle = COL.deskTop;
+        ctx.fillRect(x+3,y+5,TILE-6,TILE-12);
+        ctx.fillStyle = '#505060';
+        ctx.fillRect(x+9,y+8,10,7);
+      }
+      break;
+    case T.PLAYER_DESK:
+      drawFloorBg();
+      if (!tryDrawObj('obj_player_desk')) {
+        ctx.fillStyle = COL.desk;
+        ctx.fillRect(x+2,y+4,TILE-4,TILE-8);
+        ctx.fillStyle = '#6090D0';
+        ctx.fillRect(x+9,y+8,12,8);
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('★', x+TILE/2, y+TILE-3);
+      }
+      break;
+    case T.CHAIR:
+      drawFloorBg();
+      if (!tryDrawObj('obj_chair')) {
+        ctx.fillStyle = COL.chair;
+        ctx.fillRect(x+8,y+8,TILE-16,TILE-16);
+        ctx.fillStyle = COL.chairSeat;
+        ctx.fillRect(x+10,y+10,TILE-20,TILE-20);
+      }
+      break;
+    case T.DOOR:
+      if (!tryDrawObj('obj_door')) {
+        ctx.fillStyle = COL.doorFrame;
+        ctx.fillRect(x,y,TILE,TILE);
+        ctx.fillStyle = COL.door;
+        ctx.fillRect(x+3,y+2,TILE-6,TILE-4);
+        ctx.fillStyle = '#D0B060';
+        ctx.beginPath(); ctx.arc(x+TILE/2+6,y+TILE/2,2.5,0,Math.PI*2); ctx.fill();
+      }
+      // Arrow overlay (always draw for navigation)
+      ctx.fillStyle = 'rgba(255,220,100,0.8)';
+      ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+      if (row===0) ctx.fillText('▲',x+TILE/2,y+TILE/2+4);
+      else if (row===ROWS-1) ctx.fillText('▼',x+TILE/2,y+TILE/2+4);
+      else if (col===0) ctx.fillText('◀',x+TILE/2,y+TILE/2+4);
+      else ctx.fillText('▶',x+TILE/2,y+TILE/2+4);
+      break;
+    case T.WINDOW:
+      drawWallBg();
+      if (!tryDrawObj('obj_window')) {
+        ctx.fillStyle = COL.windowFrame;
+        ctx.fillRect(x+2,y+3,TILE-4,TILE-6);
+        ctx.fillStyle = COL.window;
+        ctx.fillRect(x+4,y+5,TILE-8,TILE-10);
+        ctx.fillStyle = COL.windowFrame;
+        ctx.fillRect(x+TILE/2-1,y+5,2,TILE-10);
+        ctx.fillRect(x+4,y+TILE/2-1,TILE-8,2);
+      }
+      break;
+    case T.PLANT:
+      drawFloorBg();
+      if (!tryDrawObj('obj_plant')) {
+        ctx.fillStyle = COL.pot;
+        ctx.fillRect(x+10,y+20,12,8);
+        ctx.fillStyle = COL.plant;
+        ctx.beginPath(); ctx.arc(x+TILE/2,y+11,7,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    case T.SERVER:
+      if (!tryDrawObj('obj_server')) {
+        ctx.fillStyle = '#505068';
+        ctx.fillRect(x,y,TILE,TILE);
+        ctx.fillStyle = COL.serverFace;
+        ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
+        for (let i=0;i<4;i++) {
+          ctx.fillStyle = '#505070';
+          ctx.fillRect(x+3,y+3+i*7,TILE-6,5);
+          ctx.fillStyle = (S.animFrame+col*3+i)%8<2 ? '#40FF40' : '#206020';
+          ctx.beginPath(); ctx.arc(x+TILE-6,y+5+i*7,2,0,Math.PI*2); ctx.fill();
+        }
+      }
+      break;
+    case T.PRINTER:
+      drawFloorBg();
+      if (!tryDrawObj('obj_printer')) {
+        ctx.fillStyle = COL.printer;
+        ctx.fillRect(x+2,y+3,TILE-4,TILE-8);
+        ctx.fillStyle = COL.printerDark;
+        ctx.fillRect(x+4,y+5,TILE-8,8);
+      }
+      // Status LED overlay
+      ctx.fillStyle = S.flags.printerFixed ? '#40A040' : '#D04040';
+      ctx.beginPath(); ctx.arc(x+TILE-5,y+5,3,0,Math.PI*2); ctx.fill();
+      break;
+    case T.WHITEBOARD:
+      drawWallBg();
+      if (!tryDrawObj('obj_whiteboard')) {
+        ctx.fillStyle = COL.whiteboard;
+        ctx.fillRect(x+2,y+4,TILE-4,TILE-8);
+        ctx.fillStyle = '#90A0B0';
+        ctx.font = '6px Courier New'; ctx.textAlign = 'center';
+        ctx.fillText('SYNERGY',x+TILE/2,y+TILE/2+2);
+      }
+      break;
+    case T.BEANBAG:
+      if (S.room==='wellnessRoom') drawCarpetBg(); else drawFloorBg();
+      if (!tryDrawObj('obj_beanbag')) {
+        ctx.fillStyle = COL.beanbag;
+        ctx.beginPath(); ctx.ellipse(x+TILE/2,y+TILE/2+2,12,9,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = COL.beanbagLight;
+        ctx.beginPath(); ctx.ellipse(x+TILE/2-2,y+TILE/2-1,7,5,0,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    case T.COUNTER:
+      if (!tryDrawObj('obj_counter')) {
+        ctx.fillStyle = COL.counter;
+        ctx.fillRect(x,y,TILE,TILE);
+        ctx.fillStyle = COL.counterTop;
+        ctx.fillRect(x+1,y+1,TILE-2,TILE-4);
+      }
+      break;
+    case T.FRIDGE:
+      if (!tryDrawObj('obj_fridge')) {
+        ctx.fillStyle = COL.counter;
+        ctx.fillRect(x,y,TILE,TILE);
+        ctx.fillStyle = COL.fridge;
+        ctx.fillRect(x+3,y+2,TILE-6,TILE-4);
+        ctx.fillStyle = COL.fridgeDark;
+        ctx.fillRect(x+4,y+3,TILE-8,8);
+        ctx.fillRect(x+4,y+13,TILE-8,TILE-17);
+      }
+      break;
+    case T.KEURIG:
+      if (!tryDrawObj('obj_keurig')) {
+        ctx.fillStyle = COL.counter;
+        ctx.fillRect(x,y,TILE,TILE);
+        ctx.fillStyle = COL.keurig;
+        ctx.fillRect(x+6,y+3,TILE-12,TILE-8);
+        ctx.fillStyle = '#FF3030';
+        ctx.beginPath(); ctx.arc(x+TILE/2,y+10,3,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    case T.CARPET:
+      drawCarpetBg();
+      break;
+    case T.SHELF:
+      drawWallBg();
+      if (!tryDrawObj('obj_shelf')) {
+        ctx.fillStyle = COL.shelfWood;
+        ctx.fillRect(x+1,y+8,TILE-2,4);
+        ctx.fillRect(x+1,y+20,TILE-2,4);
+        for (let i=0;i<4;i++) {
+          ctx.fillStyle = COL.shelfItems[i];
+          ctx.fillRect(x+2+i*7,y+2,5,6);
+          ctx.fillRect(x+2+i*7,y+13,5,6);
+        }
+      }
+      break;
+    case T.VENT:
+      drawWallBg();
+      if (!tryDrawObj('obj_vent')) {
+        ctx.fillStyle = COL.vent;
+        ctx.fillRect(x+3,y+3,TILE-6,TILE-6);
+        ctx.fillStyle = COL.ventSlat;
+        for (let i=0;i<4;i++) ctx.fillRect(x+5,y+5+i*6,TILE-10,2);
+      }
+      // Glow overlay
+      ctx.fillStyle = 'rgba(96,255,208,0.5)';
+      ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('▲',x+TILE/2,y+TILE/2+4);
+      break;
+    case T.ELEVATOR:
+      drawWallBg();
+      if (!tryDrawObj('obj_elevator')) {
+        ctx.fillStyle = S.flags.badgeScannerOff ? '#508060' : COL.elevator;
+        ctx.fillRect(x+1,y+2,TILE/2-2,TILE-4);
+        ctx.fillRect(x+TILE/2+1,y+2,TILE/2-2,TILE-4);
+      }
+      // Status light overlay
+      ctx.fillStyle = S.flags.badgeScannerOff ? '#40FF80' : '#FF4040';
+      ctx.fillRect(x+TILE/2-1,y,2,TILE);
+      break;
+    case T.CABINET:
+      drawFloorBg();
+      if (!tryDrawObj('obj_cabinet')) {
+        ctx.fillStyle = COL.cabinet;
+        ctx.fillRect(x+3,y+3,TILE-6,TILE-6);
+        ctx.fillStyle = '#707878';
+        ctx.fillRect(x+4,y+5,TILE-8,8);
+        ctx.fillRect(x+4,y+15,TILE-8,8);
+        ctx.fillStyle = '#B0B0B0';
+        ctx.beginPath(); ctx.arc(x+TILE/2,y+9,2,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x+TILE/2,y+19,2,0,Math.PI*2); ctx.fill();
+      }
+      break;
+  }
+}
+
+// ============================================================
+// CHARACTER RENDERING
+// ============================================================
+const NPC_COLORS = { derek:'#D94A4A', karen:'#D9A84A', jess:'#4AD97A', chad:'#9B59B6' };
+const NPC_LABELS = { derek:'DEREK', karen:'KAREN', jess:'JESS', chad:'CHAD' };
+const NPC_HAIR = { derek:'#5A3A2A', karen:'#C09040', jess:'#2A2A2A', chad:'#D0B060' };
+
+function drawPlayer() {
+  const cx = S.px*TILE+TILE/2, cy = S.py*TILE+TILE/2;
+  const spriteKey = 'player_' + S.pFacing;
+  drawPixelCharacter(cx, cy, spriteKey, 'YOU', true, '#4A90D9', '#3070B0', '#F5CBA7', '#3A2A1A', S.pFacing);
+}
+
+function drawNPC(npc, id) {
+  const cx = npc.x*TILE+TILE/2, cy = npc.y*TILE+TILE/2;
+  const facing = npc.facing || 'south';
+  const spriteKey = id + '_' + facing;
+  drawPixelCharacter(cx, cy, spriteKey, NPC_LABELS[id], false, NPC_COLORS[id], shadeColor(NPC_COLORS[id],-30), '#F5CBA7', NPC_HAIR[id], facing);
+}
+
+function drawPixelCharacter(cx, cy, spriteKey, label, isPlayer, bodyColor, bodyDark, skinColor, hairColor, facing) {
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath(); ctx.ellipse(cx, cy+10, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  // Try pixel art sprite first
+  if (isAssetReady(spriteKey)) {
+    ctx.imageSmoothingEnabled = false;
+    // Pro characters are 80x80 canvas — render at 1.75x tile size for detail
+    const cSize = Math.round(TILE * 1.75);
+    ctx.drawImage(ASSETS[spriteKey], cx - cSize/2, cy - cSize/2 - 6, cSize, cSize);
+    ctx.imageSmoothingEnabled = true;
+  } else {
+    // Fallback to procedural rendering
+    drawCharSpriteFallback(cx, cy, bodyColor, bodyDark, skinColor, hairColor, facing, isPlayer);
+  }
+
+  // Label (always drawn on top)
+  ctx.font = 'bold 8px Courier New'; ctx.textAlign = 'center';
+  const lw = ctx.measureText(label).width;
+  ctx.fillStyle = 'rgba(30,30,50,0.85)';
+  ctx.fillRect(cx-lw/2-4, cy-26, lw+8, 11);
+  ctx.fillStyle = isPlayer ? '#FFD700' : '#E8E4DE';
+  ctx.fillText(label, cx, cy-17);
+}
+
+function drawCharSpriteFallback(cx, cy, bodyColor, bodyDark, skinColor, hairColor, facing, isPlayer) {
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(cx-7, cy-2, 14, 14);
+  ctx.fillStyle = bodyDark;
+  ctx.fillRect(cx-7, cy+8, 14, 4);
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(cx-10, cy, 3, 10);
+  ctx.fillRect(cx+7, cy, 3, 10);
+  ctx.fillStyle = '#404050';
+  ctx.fillRect(cx-5, cy+12, 4, 5);
+  ctx.fillRect(cx+1, cy+12, 4, 5);
+  ctx.fillStyle = skinColor;
+  ctx.beginPath(); ctx.arc(cx, cy-6, 7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = hairColor;
+  if (facing === 'north') {
+    ctx.beginPath(); ctx.arc(cx, cy-7, 7, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.arc(cx, cy-8, 7, Math.PI, Math.PI*2); ctx.fill();
+    ctx.fillRect(cx-7, cy-10, 14, 4);
+  }
+  if (facing !== 'north') {
+    const eyeOff = facing==='east' ? 2 : facing==='west' ? -2 : 0;
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(cx-3+eyeOff, cy-8, 3, 3);
+    ctx.fillRect(cx+1+eyeOff, cy-8, 3, 3);
+    ctx.fillStyle = '#333';
+    ctx.fillRect(cx-2+eyeOff, cy-7, 2, 2);
+    ctx.fillRect(cx+2+eyeOff, cy-7, 2, 2);
+  }
+  if (isPlayer) {
+    ctx.fillStyle = '#4A90D9';
+    ctx.fillRect(cx-1, cy-1, 2, 6);
+    ctx.fillStyle = '#FFD700';
+    ctx.fillRect(cx-2, cy+4, 4, 3);
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(cx-7, cy-2, 14, 14);
+  ctx.beginPath(); ctx.arc(cx, cy-6, 7, 0, Math.PI*2); ctx.stroke();
+}
+
+function shadeColor(hex, amt) {
+  let r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  r=Math.max(0,Math.min(255,r+amt)); g=Math.max(0,Math.min(255,g+amt)); b=Math.max(0,Math.min(255,b+amt));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawHints() {
+  // NPC hints
+  for (const [id, npc] of Object.entries(S.npcs)) {
+    if (npc.room===S.room && Math.abs(npc.x-S.px)<=2 && Math.abs(npc.y-S.py)<=2) {
+      drawHintLabel(npc.x*TILE+TILE/2, npc.y*TILE-6, '[E] Talk');
+      return;
+    }
+  }
+  // Tile hints
+  const adj = getAdjTiles();
+  for (const {x,y,t} of adj) {
+    const interactable = [T.PLAYER_DESK,T.DESK,T.PRINTER,T.WHITEBOARD,T.FRIDGE,T.KEURIG,T.SHELF,T.CABINET,T.ELEVATOR,T.SERVER].includes(t);
+    if (interactable) {
+      drawHintLabel(x*TILE+TILE/2, y*TILE-2, '[E]');
+      break;
+    }
+  }
+}
+
+function drawHintLabel(x, y, text) {
+  ctx.font = 'bold 9px Courier New'; ctx.textAlign = 'center';
+  const w = ctx.measureText(text).width + 8;
+  ctx.fillStyle = 'rgba(255,220,100,0.92)';
+  ctx.fillRect(x-w/2, y-10, w, 12);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillText(text, x, y);
+}
+
+// ============================================================
+// MINIMAP
+// ============================================================
+const ROOM_POS = {
+  kitchen:      {x:0,  y:20},
+  openPlan:     {x:25, y:20},
+  conference:   {x:55, y:20},
+  supplyCloset: {x:15, y:40},
+  printerAlcove:{x:50, y:40},
+  wellnessRoom: {x:30, y:45},
+  serverRoom:   {x:30, y:55},
+  hrCorridor:   {x:35, y:5},
+  managerOffice:{x:60, y:5},
+  elevLobby:    {x:35, y:-8},
+};
+
+function drawMinimap() {
+  mmCtx.clearRect(0,0,100,60);
+  mmCtx.fillStyle = 'rgba(26,26,46,0.9)';
+  mmCtx.fillRect(0,0,100,60);
+
+  for (const [id, pos] of Object.entries(ROOM_POS)) {
+    const x = pos.x+5, y = pos.y+5;
+    mmCtx.fillStyle = id===S.room ? '#4A90D9' : 'rgba(100,120,140,0.4)';
+    mmCtx.fillRect(x, y, 18, 10);
+    mmCtx.strokeStyle = id===S.room ? '#FFD700' : '#4A6080';
+    mmCtx.lineWidth = id===S.room ? 1.5 : 0.5;
+    mmCtx.strokeRect(x, y, 18, 10);
+  }
+
+  // Player dot
+  const rp = ROOM_POS[S.room];
+  if (rp) {
+    const dotX = rp.x+5 + (S.px/COLS)*18;
+    const dotY = rp.y+5 + (S.py/ROWS)*10;
+    mmCtx.fillStyle = '#FFD700';
+    mmCtx.beginPath(); mmCtx.arc(dotX, dotY, 2, 0, Math.PI*2); mmCtx.fill();
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+initRooms();
+ctx.fillStyle = '#1a1a2e';
+ctx.fillRect(0,0,CW,CH);
+</script>
+</body>
+</html>
