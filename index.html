@@ -22,6 +22,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    transform-origin: center center;
+    /* scaled dynamically by JS to fill viewport */
   }
   #title-bar {
     background: #2C3E50;
@@ -43,7 +45,7 @@
     background: #E8E4DE;
     overflow: hidden;
   }
-  #gameCanvas { display: block; }
+  #gameCanvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
   #hud {
     background: #2C3E50;
     width: 800px;
@@ -2027,6 +2029,24 @@ function drawMinimap() {
 initRooms();
 ctx.fillStyle = '#1a1a2e';
 ctx.fillRect(0,0,CW,CH);
+
+// Dynamic scaling — fill viewport while preserving aspect ratio
+(function() {
+  const wrapper = document.getElementById('game-wrapper');
+  function scaleToFit() {
+    // Measure the wrapper's natural (unscaled) size
+    wrapper.style.transform = 'none';
+    const rect = wrapper.getBoundingClientRect();
+    const baseW = rect.width;
+    const baseH = rect.height;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const scale = Math.min(vw / baseW, vh / baseH);
+    wrapper.style.transform = 'scale(' + scale + ')';
+  }
+  scaleToFit();
+  window.addEventListener('resize', scaleToFit);
+})();
 </script>
 </body>
 </html>
