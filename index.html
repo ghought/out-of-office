@@ -126,7 +126,8 @@
     padding: 6px 14px; font-family: 'Courier New', monospace;
     font-size: 11px; cursor: pointer; letter-spacing: 1px;
   }
-  .dialogue-btn:hover { background: #2C3E50; color: #E8E4DE; }
+  .dialogue-btn:hover, .dialogue-btn.kbd-focus { background: #2C3E50; color: #E8E4DE; border-color: #FFD700; }
+  .dialogue-btn.kbd-focus { box-shadow: 0 0 4px rgba(255,215,0,0.4); }
 
   /* Slack */
   #slack-popup {
@@ -161,14 +162,33 @@
     width: 50px; height: 50px; background: #1a1a2e;
     border: 2px solid #4A90D9; color: #4A90D9;
     font-size: 20px; cursor: pointer; font-family: 'Courier New', monospace;
+    transition: background 0.15s, color 0.15s, transform 0.15s, border-color 0.15s;
   }
-  .seq-btn.highlight { background: #4A90D9; color: #1a1a2e; }
+  .seq-btn.highlight { background: #4A90D9; color: #1a1a2e; border-color: #FFD700; box-shadow: 0 0 12px rgba(74,144,217,0.6); }
   .seq-btn.correct { border-color: #4AD97A; background: #1A3A2A; }
   .seq-btn.wrong { border-color: #D94A4A; background: #3A1A1A; }
   #printer-prompt { font-size: 12px; color: #8BA7C7; margin-top: 8px; }
   #printer-progress { display: flex; gap: 4px; justify-content: center; margin-top: 8px; }
   .prog-dot { width: 8px; height: 8px; border-radius: 50%; background: #1a1a2e; border: 1px solid #4A90D9; }
   .prog-dot.done { background: #4AD97A; }
+
+  /* Code entry (2FA) */
+  #code-entry {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #2C3E50; border: 2px solid #D94A4A;
+    padding: 24px; z-index: 200;
+    text-align: center; width: 320px;
+  }
+  #code-title { font-size: 14px; color: #D94A4A; margin-bottom: 12px; letter-spacing: 2px; }
+  .code-digit {
+    width: 50px; height: 60px; background: #1a1a2e;
+    border: 2px solid #4A90D9; color: #E8E4DE;
+    font-size: 28px; text-align: center;
+    font-family: 'Courier New', monospace;
+  }
+  .code-digit.filled { border-color: #4AD97A; color: #4AD97A; }
+  .code-digit.wrong { border-color: #D94A4A; color: #D94A4A; }
 
   /* End screen */
   #end-screen {
@@ -222,8 +242,11 @@
       <div class="company">Vantage Solutions</div>
       <h1>Out of Office</h1>
       <div class="tagline">"Your return-to-office mandate just became a hostage situation."</div>
-      <div style="font-size:11px;color:#4A6080;margin-top:8px;">Monday · Floor 7 · 9:00 AM</div>
-      <button class="btn" onclick="startGame()">Clock In</button>
+      <div id="day-select" style="display:flex;gap:12px;margin-top:16px;">
+        <button class="btn" onclick="startGame(1)" id="btn-monday">Monday</button>
+        <button class="btn" onclick="startGame(2)" id="btn-tuesday" style="opacity:0.3;cursor:not-allowed;" disabled>Tuesday</button>
+      </div>
+      <div id="day-subtitle" style="font-size:11px;color:#4A6080;margin-top:8px;"></div>
       <div style="font-size:10px;color:#4A6080;margin-top:12px;line-height:1.8;">
         WASD / Arrow Keys — Move &nbsp;&nbsp; E — Interact &nbsp;&nbsp; Click inventory — Use item<br>
         Escape the building before 6 PM. Don't let your Engagement Score hit 100%.
@@ -256,11 +279,26 @@
       <button class="dialogue-btn" id="printer-cancel-btn" onclick="cancelPrinter()" style="margin-top:12px;">Give Up</button>
     </div>
 
+    <div id="code-entry" style="display:none;">
+      <div id="code-title">2FA VERIFICATION</div>
+      <div style="font-size:11px;color:#8BA7C7;margin-bottom:10px;">Enter the 4-digit override code</div>
+      <div id="code-digits" style="display:flex;gap:8px;justify-content:center;margin:12px 0;"></div>
+      <div id="code-timer-bar" style="height:3px;background:#D94A4A;margin:10px 0;width:100%;transition:width 0.1s linear;"></div>
+      <div id="code-prompt" style="font-size:12px;color:#8BA7C7;">Type the code...</div>
+    </div>
+
+    <div id="allhands-bar" style="display:none;position:absolute;top:0;left:0;right:0;height:24px;background:rgba(217,74,74,0.9);z-index:180;text-align:center;">
+      <span id="allhands-text" style="font-size:11px;color:white;letter-spacing:2px;line-height:24px;">ALL-HANDS IN 60s — FIND COVER!</span>
+    </div>
+
     <div id="end-screen">
       <div id="end-title"></div>
       <div id="end-body"></div>
       <div id="end-stats"></div>
-      <button class="btn" onclick="resetGame()" style="margin-top:16px;">Try Again</button>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <button class="btn" onclick="resetGame()">Try Again</button>
+        <button class="btn" onclick="showDaySelect()">Day Select</button>
+      </div>
     </div>
 
     <div id="minimap"><canvas id="minimapCanvas" width="100" height="60"></canvas><div class="minimap-label">FLOOR 7</div></div>
@@ -343,11 +381,37 @@ loadImg('obj_vent', 'assets/objects/vent.png');
   loadImg('karen_'+dir, 'assets/characters/karen_'+dir+'.png');
   loadImg('jess_'+dir, 'assets/characters/jess_'+dir+'.png');
   loadImg('chad_'+dir, 'assets/characters/chad_'+dir+'.png');
+  loadImg('bryce_'+dir, 'assets/characters/bryce_'+dir+'.png');
 });
 
 function isAssetReady(key) {
   return ASSETS[key] && ASSETS[key].complete && ASSETS[key].naturalWidth > 0;
 }
+
+// ============================================================
+// DAY SYSTEM
+// ============================================================
+let DAY = 1;
+function getMondayData() {
+  try { return JSON.parse(localStorage.getItem('ooo_monday')); } catch(e) { return null; }
+}
+function saveMondayData(route, peakSuspicion) {
+  localStorage.setItem('ooo_monday', JSON.stringify({ completed:true, route, peakSuspicion, ts:Date.now() }));
+}
+function initDaySelect() {
+  const md = getMondayData();
+  const btn = document.getElementById('btn-tuesday');
+  const sub = document.getElementById('day-subtitle');
+  if (md && md.completed) {
+    btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+    sub.textContent = 'Monday cleared. Tuesday awaits.';
+  } else {
+    btn.disabled = true; btn.style.opacity = '0.3'; btn.style.cursor = 'not-allowed';
+    sub.textContent = 'Complete Monday to unlock Tuesday.';
+  }
+}
+// Run on load
+setTimeout(initDaySelect, 0);
 
 // ============================================================
 // CONSTANTS
@@ -386,6 +450,7 @@ const T = {
   PLANT:6, SERVER:7, PRINTER:8, WHITEBOARD:9, BEANBAG:10,
   COUNTER:11, FRIDGE:12, KEURIG:13, CARPET:14, SHELF:15,
   VENT:16, ELEVATOR:17, CABINET:18, PLAYER_DESK:19,
+  FLOOR_PANEL:20, GLASS_WALL:21, SCREEN:22,
 };
 
 // ============================================================
@@ -574,13 +639,184 @@ function buildPrinterAlcove() {
 }
 
 // ============================================================
+// TUESDAY ROOM BUILDERS
+// ============================================================
+function buildOpenPlanTuesday() {
+  const g = emptyRoom();
+  g[0][12] = T.DOOR;      // north -> HR corridor
+  g[7][COLS-1] = T.DOOR;  // east -> kitchen (SWAPPED from Monday)
+  g[7][0] = T.DOOR;       // west -> conference (SWAPPED from Monday)
+  g[ROWS-1][7] = T.DOOR;  // south-west -> supply closet
+  g[ROWS-1][18] = T.DOOR; // south-east -> printer alcove
+  g[ROWS-1][12] = T.DOOR; // south-center -> quiet car (NEW)
+
+  // Player's desk MOVED — further from exits at (18, 10)
+  g[10][18] = T.PLAYER_DESK;
+
+  // Mystery desk — someone you've never seen before
+  g[2][4] = T.DESK; g[3][4] = T.CHAIR;  // old player desk spot, now "unknown"
+
+  // Desk clusters
+  const deskCols = [8, 11, 15, 21];
+  for (const c of deskCols) { g[2][c] = T.DESK; g[3][c] = T.CHAIR; }
+  for (const c of [4, 8, 11, 15, 21]) { g[5][c] = T.DESK; g[6][c] = T.CHAIR; }
+  for (const c of [4, 8, 11, 15, 21]) { g[9][c] = T.DESK; g[10][c] = T.CHAIR; }
+  for (const c of [4, 8, 11, 15]) { g[12][c] = T.DESK; g[11][c] = T.CHAIR; }
+
+  // Plants
+  g[1][1] = T.PLANT; g[1][23] = T.PLANT; g[13][1] = T.PLANT; g[13][23] = T.PLANT;
+  return g;
+}
+
+function buildKitchenTuesday() {
+  const g = emptyRoom();
+  g[7][0] = T.DOOR; // west -> open plan (was east on Monday)
+  // Counter + appliances along north wall
+  for (let c = 2; c <= 12; c++) g[1][c] = T.COUNTER;
+  g[1][5] = T.FRIDGE; g[1][9] = T.KEURIG;
+  // Table in center
+  for (let c = 6; c <= 12; c++) g[6][c] = T.DESK;
+  g[5][7] = T.CHAIR; g[5][9] = T.CHAIR; g[5][11] = T.CHAIR;
+  g[7][7] = T.CHAIR; g[7][9] = T.CHAIR; g[7][11] = T.CHAIR;
+  g[1][1] = T.PLANT; g[13][23] = T.PLANT;
+  g[1][16] = T.CABINET;
+  return g;
+}
+
+function buildConferenceTuesday() {
+  const g = emptyRoom();
+  g[7][COLS-1] = T.DOOR; // east -> open plan (was west on Monday)
+  // Glass walls right side
+  for (let r = 2; r <= 12; r++) { if (r !== 7) g[r][23] = T.WINDOW; }
+  // Big table
+  for (let r = 4; r <= 10; r++) { g[r][8] = T.DESK; g[r][16] = T.DESK; }
+  for (let c = 8; c <= 16; c++) { g[4][c] = T.DESK; g[10][c] = T.DESK; }
+  for (let r = 5; r <= 9; r++) for (let c = 9; c <= 15; c++) g[r][c] = T.CARPET;
+  for (let c = 9; c <= 15; c++) { g[3][c] = T.CHAIR; g[11][c] = T.CHAIR; }
+  for (let r = 5; r <= 9; r++) { g[r][7] = T.CHAIR; g[r][17] = T.CHAIR; }
+  g[2][2] = T.WHITEBOARD; g[3][2] = T.WHITEBOARD;
+  g[1][12] = T.CABINET;
+  return g;
+}
+
+function buildHRCorridorTuesday() {
+  const g = emptyRoom();
+  g[0][12] = T.DOOR;      // north -> elevator lobby
+  g[ROWS-1][12] = T.DOOR; // south -> open plan
+  g[7][COLS-1] = T.DOOR;  // east -> manager office
+  g[ROWS-1][20] = T.DOOR; // south-east -> collaboration zone (was vent to server room)
+
+  // Longer carpet runner (wider, more imposing)
+  for (let r = 1; r <= 13; r++) { for (let c = 10; c <= 14; c++) g[r][c] = T.CARPET; }
+
+  // MORE motivational posters — on both walls, tighter spacing
+  for (let r = 1; r <= 13; r += 2) { g[r][2] = T.CABINET; g[r][22] = T.CABINET; }
+  // Extra posters on inner walls
+  g[3][6] = T.CABINET; g[7][6] = T.CABINET; g[11][6] = T.CABINET;
+  g[3][18] = T.CABINET; g[7][18] = T.CABINET; g[11][18] = T.CABINET;
+  return g;
+}
+
+function buildCollabZone() {
+  const g = emptyRoom();
+  g[0][20] = T.DOOR; // north -> HR corridor
+  // Open-concept nightmare — no inner walls, all carpet
+  for (let r = 1; r <= 13; r++) for (let c = 1; c <= 23; c++) if (g[r][c]===T.FLOOR) g[r][c] = T.CARPET;
+  // Beanbags scattered chaotically
+  g[3][4] = T.BEANBAG; g[3][10] = T.BEANBAG; g[3][16] = T.BEANBAG;
+  g[7][3] = T.BEANBAG; g[7][20] = T.BEANBAG;
+  g[10][6] = T.BEANBAG; g[10][14] = T.BEANBAG;
+  // Whiteboard covered in meaningless diagrams
+  g[1][8] = T.WHITEBOARD; g[1][9] = T.WHITEBOARD; g[1][10] = T.WHITEBOARD;
+  // Giant motivational screen
+  g[1][15] = T.SCREEN; g[1][16] = T.SCREEN; g[1][17] = T.SCREEN;
+  // THE LOOSE FLOOR PANEL — route B key
+  g[8][12] = T.FLOOR_PANEL;
+  // Plants
+  g[1][1] = T.PLANT; g[1][23] = T.PLANT; g[13][1] = T.PLANT; g[13][23] = T.PLANT;
+  return g;
+}
+
+function buildQuietCar() {
+  const g = emptyRoom();
+  g[0][12] = T.DOOR; // north -> open plan
+  // Glass walls everywhere (it's a tiny glass booth)
+  for (let r = 0; r <= ROWS-1; r++) for (let c = 0; c <= COLS-1; c++) {
+    if (r === 0 || r === ROWS-1 || c === 0 || c === COLS-1) g[r][c] = T.GLASS_WALL;
+  }
+  g[0][12] = T.DOOR; // door through glass
+  // Interior — mostly empty, one chair, tiny carpet
+  for (let r = 5; r <= 9; r++) for (let c = 10; c <= 14; c++) g[r][c] = T.CARPET;
+  g[7][12] = T.CHAIR;
+  // Plants on either side
+  g[3][6] = T.PLANT; g[3][18] = T.PLANT;
+  g[11][6] = T.PLANT; g[11][18] = T.PLANT;
+  return g;
+}
+
+function buildManagerOfficeTuesday() {
+  const g = emptyRoom();
+  g[7][0] = T.DOOR;
+  // Big L-desk with sticky note on monitor (code "7293")
+  for (let c = 18; c <= 23; c++) g[2][c] = T.DESK;
+  for (let r = 2; r <= 5; r++) g[r][23] = T.DESK;
+  g[3][21] = T.CHAIR;
+  // Bookshelf — with good coffee on top shelf
+  for (let r = 2; r <= 6; r++) g[r][1] = T.SHELF;
+  // Carpet
+  for (let r = 4; r <= 10; r++) for (let c = 6; c <= 16; c++) g[r][c] = T.CARPET;
+  // Plants
+  g[1][1] = T.PLANT; g[13][23] = T.PLANT;
+  // Couch
+  for (let c = 6; c <= 10; c++) g[12][c] = T.BEANBAG;
+  return g;
+}
+
+function buildSupplyClosetTuesday() {
+  const g = emptyRoom();
+  g[0][7] = T.DOOR;       // north -> open plan
+  g[7][COLS-1] = T.DOOR;  // east -> wellness room
+  // Shelves (with gaps at doors)
+  for (let c = 2; c <= 22; c++) { if (c !== 7) g[1][c] = T.SHELF; }
+  for (let r = 3; r <= 12; r++) { g[r][1] = T.SHELF; if (r !== 7) g[r][23] = T.SHELF; }
+  // More shelves
+  for (let c = 5; c <= 10; c++) g[5][c] = T.SHELF;
+  for (let c = 14; c <= 19; c++) g[5][c] = T.SHELF;
+  // Letter opener on a side desk
+  g[10][10] = T.DESK;
+  // Snack stash cabinet
+  g[8][18] = T.CABINET;
+  return g;
+}
+
+function buildWellnessRoomTuesday() {
+  const g = emptyRoom();
+  g[7][0] = T.DOOR;    // west -> supply closet
+  // NO vent — server room is gone. Just the one exit.
+  // All carpet
+  for (let r = 1; r <= 13; r++) for (let c = 1; c <= 23; c++) if (g[r][c]===T.FLOOR) g[r][c] = T.CARPET;
+  // Beanbags
+  g[3][5] = T.BEANBAG; g[3][12] = T.BEANBAG; g[3][19] = T.BEANBAG;
+  g[7][8] = T.BEANBAG; g[7][16] = T.BEANBAG;
+  g[11][5] = T.BEANBAG; g[11][12] = T.BEANBAG; g[11][19] = T.BEANBAG;
+  g[1][1] = T.PLANT; g[1][23] = T.PLANT; g[13][1] = T.PLANT; g[13][23] = T.PLANT;
+  return g;
+}
+
+// ============================================================
 // ROOMS
 // ============================================================
 const ROOMS = {};
 function initRooms() {
+  // Clear all rooms
+  for (const k in ROOMS) delete ROOMS[k];
+  if (DAY === 1) initRoomsMonday();
+  else initRoomsTuesday();
+}
+
+function initRoomsMonday() {
   ROOMS.openPlan = {
     name: "Open Plan Area", tiles: buildOpenPlan(),
-    // Each exit: doorX/doorY = where the door tile is; spawnX/spawnY = where player appears in destination
     exits: [
       { doorX:12, doorY:0,  to:'hrCorridor',   spawnX:12, spawnY:13 },
       { doorX:0,  doorY:7,  to:'kitchen',      spawnX:23, spawnY:7 },
@@ -641,6 +877,71 @@ function initRooms() {
   };
 }
 
+function initRoomsTuesday() {
+  ROOMS.openPlan = {
+    name: "Open Plan Area", tiles: buildOpenPlanTuesday(),
+    exits: [
+      { doorX:12, doorY:0,  to:'hrCorridor',   spawnX:12, spawnY:13 },
+      { doorX:24, doorY:7,  to:'kitchen',      spawnX:1,  spawnY:7 },  // EAST now
+      { doorX:0,  doorY:7,  to:'conference',    spawnX:23, spawnY:7 },  // WEST now
+      { doorX:7,  doorY:14, to:'supplyCloset',  spawnX:7,  spawnY:1 },
+      { doorX:18, doorY:14, to:'printerAlcove', spawnX:18, spawnY:1 },
+      { doorX:12, doorY:14, to:'quietCar',      spawnX:12, spawnY:1 },  // NEW
+    ]
+  };
+  ROOMS.kitchen = {
+    name: "Kitchen / Break Room", tiles: buildKitchenTuesday(),
+    exits: [{ doorX:0, doorY:7, to:'openPlan', spawnX:23, spawnY:7 }]
+  };
+  ROOMS.conference = {
+    name: 'Conference Room "Synergy"', tiles: buildConferenceTuesday(),
+    exits: [{ doorX:24, doorY:7, to:'openPlan', spawnX:1, spawnY:7 }]
+  };
+  ROOMS.hrCorridor = {
+    name: "HR Corridor", tiles: buildHRCorridorTuesday(),
+    exits: [
+      { doorX:12, doorY:0,  to:'elevLobby',     spawnX:12, spawnY:13 },
+      { doorX:12, doorY:14, to:'openPlan',       spawnX:12, spawnY:1 },
+      { doorX:24, doorY:7,  to:'managerOffice',  spawnX:2,  spawnY:7, locked:'managerOfficeLocked' },
+      { doorX:20, doorY:14, to:'collabZone',     spawnX:20, spawnY:1 },  // Collab Zone replaces server room
+    ]
+  };
+  ROOMS.managerOffice = {
+    name: "Manager's Office", tiles: buildManagerOfficeTuesday(),
+    exits: [{ doorX:0, doorY:7, to:'hrCorridor', spawnX:23, spawnY:7 }]
+  };
+  ROOMS.elevLobby = {
+    name: "Elevator Lobby", tiles: buildElevLobby(),
+    exits: [{ doorX:12, doorY:14, to:'hrCorridor', spawnX:12, spawnY:1 }]
+  };
+  ROOMS.supplyCloset = {
+    name: "Supply Closet", tiles: buildSupplyClosetTuesday(),
+    exits: [
+      { doorX:7,  doorY:0, to:'openPlan',     spawnX:7,  spawnY:13 },
+      { doorX:24, doorY:7, to:'wellnessRoom', spawnX:1,  spawnY:7 },
+    ]
+  };
+  ROOMS.wellnessRoom = {
+    name: "The Wellness Room", tiles: buildWellnessRoomTuesday(),
+    exits: [
+      { doorX:0, doorY:7, to:'supplyCloset', spawnX:23, spawnY:7 },
+      // NO vent to server room — it's gone
+    ]
+  };
+  ROOMS.collabZone = {
+    name: "The Collaboration Zone", tiles: buildCollabZone(),
+    exits: [{ doorX:20, doorY:0, to:'hrCorridor', spawnX:20, spawnY:13 }]
+  };
+  ROOMS.quietCar = {
+    name: "The Quiet Car", tiles: buildQuietCar(),
+    exits: [{ doorX:12, doorY:0, to:'openPlan', spawnX:12, spawnY:13 }]
+  };
+  ROOMS.printerAlcove = {
+    name: "Printer Alcove", tiles: buildPrinterAlcove(),
+    exits: [{ doorX:18, doorY:0, to:'openPlan', spawnX:18, spawnY:13 }]
+  };
+}
+
 // ============================================================
 // ITEMS
 // ============================================================
@@ -652,12 +953,17 @@ const ITEMS = {
   lanyard:     { emoji:'🔗', name:'Lanyard',          desc:"Can prop open the wellness room's vent." },
   elevKeycard: { emoji:'💳', name:'Override Keycard',  desc:'Elevator override keycard. Your way out.' },
   serverCode:  { emoji:'🔑', name:'Server Code',      desc:"Access code for the server room. Jess's parting gift." },
+  // Tuesday items
+  letterOpener:{ emoji:'🗡️', name:'Letter Opener',    desc:'A sharp letter opener. Could pry things open.' },
+  goodCoffee:  { emoji:'☕', name:'Good Coffee',       desc:"Derek's premium reserve blend. Jess would appreciate this." },
+  snackStash:  { emoji:'🍫', name:'Snack Stash',       desc:'A hidden stash of snacks. A peace offering for a friend.' },
+  teamFlyer:   { emoji:'📋', name:'Team-Building Flyer', desc:'A flyer for team-building activities. Bryce would love this.' },
 };
 
 // ============================================================
 // SLACK MESSAGES
 // ============================================================
-const SLACK_MSGS = [
+const SLACK_MSGS_MONDAY = [
   { sender:'Derek', channel:'#general', msg:"Quick pulse check — who's excited about our new open floor plan?" },
   { sender:'Karen (HR)', channel:'#compliance', msg:'Reminder: Desk time is face time. Calendar visibility is mandatory.' },
   { sender:'All-Staff', channel:'#announcements', msg:'Reminder: lunch is for recharging, not leaving the building.' },
@@ -666,16 +972,34 @@ const SLACK_MSGS = [
   { sender:'All-Staff', channel:'#general', msg:'The wellness room is for BRIEF recharging only. Max 15 mins.' },
   { sender:'Derek', channel:'#team', msg:"Who wants to stay late for some optional team bonding?" },
 ];
+const SLACK_MSGS_TUESDAY = [
+  { sender:'Bryce 🌟', channel:'#culture', msg:"GOOD MORNING TEAM!! Who else feels the ENERGY today?? The vibes are IMMACULATE." },
+  { sender:'Derek', channel:'#general', msg:"Noticed some great attendance patterns this week. Keep it up. I'm watching." },
+  { sender:'Karen (HR)', channel:'#compliance', msg:'Reminder: The new badge system tracks entry AND exit times. For your convenience.' },
+  { sender:'Bryce 🌟', channel:'#culture', msg:"Just restocked the Collaboration Zone with fresh markers! Who wants to brainstorm?!" },
+  { sender:'All-Staff', channel:'#announcements', msg:'Floor plan optimization complete. Please update your mental maps accordingly.' },
+  { sender:'Karen (HR)', channel:'DM', msg:"We noticed you left early yesterday. Let's chat about commitment." },
+  { sender:'Derek', channel:'#team', msg:"The remodel looks great. Don't you think? Everything is exactly where it should be." },
+  { sender:'Bryce 🌟', channel:'#culture', msg:"Reminder: Wednesday is Team Spirit day! Attendance is STRONGLY encouraged!! 🎉" },
+  { sender:'All-Staff', channel:'#announcements', msg:'The Quiet Car is for deep work only. Booking is limited. Respect the focus zone.' },
+  { sender:'Derek', channel:'#general', msg:"Has anyone else noticed the building across the street looks... closer today?" },
+];
+function getSlackMsgs() { return DAY === 2 ? SLACK_MSGS_TUESDAY : SLACK_MSGS_MONDAY; }
 
 // ============================================================
 // STATE
 // ============================================================
 let S = {};
 function resetState() {
+  const md = getMondayData();
+  const isTuesday = (DAY === 2);
+
   S = {
     running: false,
+    day: DAY,
     room: 'openPlan',
-    px: 6, py: 4,  // player position — in a clear walkway
+    px: isTuesday ? 19 : 6,   // Tuesday: further from exits
+    py: isTuesday ? 10 : 4,
     pFacing: 'south',
     time: 9*60,
     suspicion: 0,
@@ -689,16 +1013,28 @@ function resetState() {
       managerOfficeLocked: true, badgeScannerOff: false,
       wellnessVisited: false, derekDistracted: false, derekDistractTimer: 0,
       serverAccessed: false,
+      // Tuesday flags
+      jessTrusted: false, jessHintGiven: false, teamFlyerTaken: false,
+      floorPanelOpen: false, crawlspaceUsed: false,
+      stickyNoteCode: '7293', stickyNoteSeen: false,
+      codeEntryActive: false,
+      allHandsTriggered: false, allHandsTime: 660 + Math.floor(Math.random()*180), // 11:00-14:00
+      allHandsCountdown: -1,
+      quietCarEntryTime: -1,
+      bryceFollowing: false, bryceFollowRooms: 0,
+      bryceDistracted: false, bryceDistractTimer: 0,
+      karenHighAlert: isTuesday && md && md.peakSuspicion >= 80,
+      mondayRoute: md ? md.route : null,
     },
     npcs: {
-      derek: { room:'managerOffice', x:20, y:4, facing:'south', patIdx:0, frozen:0 },
-      karen: { room:'hrCorridor', x:12, y:8, facing:'south', patIdx:0 },
+      derek: { room:'managerOffice', x:20, y:4, facing:'south', patIdx:0, frozen:0, _lastLevel:'low' },
+      karen: { room:'hrCorridor', x:12, y:8, facing:'south', patIdx:0, frozen:0, _lastLevel:'low' },
       jess:  { room:'kitchen', x:14, y:10, facing:'south' },
       chad:  { room:'conference', x:12, y:2, facing:'south' },
     },
     dialogue: false,
     slackVisible: false,
-    slackCountdown: 55 + Math.random()*10,
+    slackCountdown: isTuesday ? 40 + Math.random()*10 : 55 + Math.random()*10,
     printerActive: false,
     printerSeq: [], printerInput: [], printerPhase: 'watching',
     keys: {},
@@ -707,11 +1043,16 @@ function resetState() {
     posterReads: {},
     animFrame: 0,
   };
+
+  // Tuesday: add Bryce NPC
+  if (isTuesday) {
+    S.npcs.bryce = { room:'openPlan', x:12, y:7, facing:'south', patIdx:0, frozen:0, _lastLevel:'low' };
+  }
 }
 resetState();
 
-// NPC patrol routes
-const PATROLS = {
+// NPC patrol routes (indexed by day)
+const PATROLS_MONDAY = {
   derek: {
     low: [
       {room:'managerOffice',x:20,y:4},{room:'managerOffice',x:10,y:10},{room:'managerOffice',x:20,y:10},{room:'managerOffice',x:20,y:4},
@@ -735,6 +1076,58 @@ const PATROLS = {
   }
 };
 
+const PATROLS_TUESDAY = {
+  derek: {
+    low: [
+      // Derek lingers near his office more, sometimes waits outside the door
+      {room:'managerOffice',x:20,y:4},{room:'managerOffice',x:10,y:10},
+      {room:'managerOffice',x:20,y:10},{room:'managerOffice',x:20,y:4},
+      {room:'hrCorridor',x:23,y:7},  // stands outside his office door and waits
+      {room:'managerOffice',x:20,y:4},
+    ],
+    high: [
+      {room:'managerOffice',x:20,y:4},
+      {room:'hrCorridor',x:23,y:7},  // waits outside office
+      {room:'hrCorridor',x:12,y:10},{room:'hrCorridor',x:12,y:3},
+      {room:'openPlan',x:12,y:4},{room:'openPlan',x:6,y:7},{room:'openPlan',x:18,y:10},
+      {room:'collabZone',x:12,y:7},
+      {room:'hrCorridor',x:12,y:10},
+      {room:'managerOffice',x:20,y:4},
+    ]
+  },
+  karen: {
+    low: [
+      // Karen patrols more from the start if she remembers Monday
+      {room:'hrCorridor',x:12,y:3},{room:'hrCorridor',x:12,y:12},
+      {room:'openPlan',x:12,y:4},{room:'openPlan',x:18,y:8},
+      {room:'hrCorridor',x:12,y:3},
+    ],
+    high: [
+      {room:'hrCorridor',x:12,y:3},{room:'hrCorridor',x:12,y:12},
+      {room:'openPlan',x:12,y:4},{room:'openPlan',x:20,y:8},
+      {room:'kitchen',x:10,y:7},
+      {room:'conference',x:12,y:7},
+      {room:'openPlan',x:12,y:7},
+      {room:'hrCorridor',x:12,y:3},
+    ]
+  },
+  bryce: {
+    low: [
+      {room:'openPlan',x:10,y:5},{room:'openPlan',x:18,y:10},
+      {room:'hrCorridor',x:12,y:8},
+      {room:'kitchen',x:10,y:7},
+      {room:'conference',x:12,y:7},
+      {room:'openPlan',x:14,y:7},
+      {room:'collabZone',x:12,y:7},
+      {room:'openPlan',x:10,y:5},
+    ]
+  }
+};
+
+function getPatrols() { return DAY === 2 ? PATROLS_TUESDAY : PATROLS_MONDAY; }
+// Backward compat alias
+const PATROLS = PATROLS_MONDAY;
+
 // ============================================================
 // CANVAS
 // ============================================================
@@ -749,8 +1142,10 @@ const mmCtx = mmCanvas.getContext('2d');
 document.addEventListener('keydown', e => {
   S.keys[e.key] = true;
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  if (e.key==='Escape') { closeDialogue(); hideSlack(); return; }
+  // Dialogue keyboard navigation — handle before interact so E/Enter/Space picks dialogue options
+  if (S.dialogue && handleDialogueKey(e)) return;
   if ((e.key==='e'||e.key==='E') && S.running && !S.gameOver) tryInteract();
-  if (e.key==='Escape') { closeDialogue(); hideSlack(); }
 });
 document.addEventListener('keyup', e => { S.keys[e.key] = false; });
 
@@ -759,9 +1154,13 @@ document.addEventListener('keyup', e => { S.keys[e.key] = false; });
 // ============================================================
 let lastTime = 0, npcTimer = 0;
 
-function startGame() {
+function startGame(day) {
+  DAY = day || 1;
   document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('allhands-bar').style.display = 'none';
+  document.getElementById('code-entry').style.display = 'none';
   resetState();
+  initRooms();
   S.running = true;
   lastTime = performance.now();
   updateHUD();
@@ -770,7 +1169,13 @@ function startGame() {
 
 function resetGame() {
   document.getElementById('end-screen').style.display = 'none';
+  startGame(DAY); // restart same day
+}
+
+function showDaySelect() {
+  document.getElementById('end-screen').style.display = 'none';
   document.getElementById('title-screen').style.display = 'flex';
+  initDaySelect();
 }
 
 function gameLoop(ts) {
@@ -792,6 +1197,49 @@ function gameLoop(ts) {
   if (S.flags.derekDistracted) {
     S.flags.derekDistractTimer -= dt;
     if (S.flags.derekDistractTimer <= 0) { S.flags.derekDistracted = false; S.npcs.derek.frozen = 0; }
+  }
+
+  // Tuesday: Bryce distraction timer
+  if (DAY === 2 && S.flags.bryceDistracted) {
+    S.flags.bryceDistractTimer -= dt;
+    if (S.flags.bryceDistractTimer <= 0) {
+      S.flags.bryceDistracted = false;
+      if (S.npcs.bryce) S.npcs.bryce.frozen = 0;
+    }
+  }
+
+  // Tuesday: Quiet Car timer — 15 game minutes, then someone knocks
+  if (DAY === 2 && S.room === 'quietCar' && S.flags.quietCarEntryTime > 0) {
+    if (S.time - S.flags.quietCarEntryTime >= 15 && !S.flags._quietCarKnocked) {
+      S.flags._quietCarKnocked = true;
+      showDialogue('The Quiet Car',
+        'Someone knocks on the glass. "Hey, are you actually using this? We have a booking."',
+        [{label:'Leave', cb:()=>{
+          closeDialogue();
+          S.flags.quietCarEntryTime = -1;
+          // Force exit to open plan
+          S.room = 'openPlan'; S.px = 12; S.py = 13;
+        }}]);
+    }
+  }
+  if (DAY === 2 && S.room !== 'quietCar') {
+    S.flags._quietCarKnocked = false;
+  }
+
+  // Tuesday: All-hands trap
+  if (DAY === 2 && !S.flags.allHandsTriggered && S.time >= S.flags.allHandsTime) {
+    triggerAllHands();
+  }
+  if (DAY === 2 && S.flags.allHandsCountdown > 0) {
+    S.flags.allHandsCountdown -= dt;
+    const bar = document.getElementById('allhands-bar');
+    const text = document.getElementById('allhands-text');
+    const secsLeft = Math.ceil(S.flags.allHandsCountdown / 1000);
+    text.textContent = `ALL-HANDS IN ${secsLeft}s — HIDE IN QUIET CAR OR SUPPLY CLOSET!`;
+    if (S.flags.allHandsCountdown <= 0) {
+      bar.style.display = 'none';
+      resolveAllHands();
+    }
   }
 
   render();
@@ -855,7 +1303,7 @@ function findExit(room, x, y) {
 function walkable(tiles, x, y) {
   if (x<0||x>=COLS||y<0||y>=ROWS) return false;
   const t = tiles[y][x];
-  return t===T.FLOOR || t===T.CARPET || t===T.DOOR || t===T.VENT;
+  return t===T.FLOOR || t===T.CARPET || t===T.DOOR || t===T.VENT || t===T.FLOOR_PANEL;
 }
 
 function handleExit(exit) {
@@ -898,6 +1346,7 @@ function handleExit(exit) {
 }
 
 function doTransition(exit) {
+  const fromRoom = S.room;
   S.room = exit.to;
   S.px = exit.spawnX;
   S.py = exit.spawnY;
@@ -905,19 +1354,83 @@ function doTransition(exit) {
 
   if (exit.to === 'wellnessRoom') S.flags.wellnessVisited = false;
 
-  if (exit.to === 'serverRoom' && !S.flags.serverAccessed) {
+  // Monday: server room access code
+  if (DAY === 1 && exit.to === 'serverRoom' && !S.flags.serverAccessed) {
     if (!hasItem('serverCode')) {
       showDialogue('Server Room',
         'A keypad glows red. You need an access code.',
         [{label:'Back out', cb:()=>{
           closeDialogue();
-          // Return to previous room
           S.room = 'wellnessRoom'; S.px = 12; S.py = 12;
         }}]);
       return;
     }
     toast('Access code accepted. You\'re in.');
     S.flags.serverAccessed = true;
+  }
+
+  // Tuesday: Bryce follow tracking
+  if (DAY === 2 && S.flags.bryceFollowing) {
+    if (exit.to === 'quietCar') {
+      // Bryce respects the focus zone
+      S.flags.bryceFollowing = false;
+      S.flags.bryceFollowRooms = 0;
+      S.flags._bryceDetectCooldown = S.time + 60; // 60 min cooldown
+      toast("Bryce waves through the glass. 'I respect your focus!' He wanders off.");
+    } else {
+      S.flags.bryceFollowRooms--;
+      if (S.flags.bryceFollowRooms <= 0) {
+        S.flags.bryceFollowing = false;
+        S.flags._bryceDetectCooldown = S.time + 60; // 60 min cooldown
+        toast("Bryce loses interest. 'Catch you later! Let's definitely circle back!'");
+      }
+    }
+  }
+
+  // Tuesday: Quiet Car timer
+  if (DAY === 2 && exit.to === 'quietCar') {
+    S.flags.quietCarEntryTime = S.time;
+  }
+  if (DAY === 2 && fromRoom === 'quietCar' && exit.to !== 'quietCar') {
+    S.flags.quietCarEntryTime = -1;
+  }
+
+  // Tuesday: sticky note visible when entering Derek's office
+  if (DAY === 2 && exit.to === 'managerOffice' && !S.flags.stickyNoteSeen) {
+    S.flags.stickyNoteSeen = true;
+    setTimeout(() => toast("You notice a sticky note on Derek's monitor: " + S.flags.stickyNoteCode), 500);
+  }
+
+  // Tuesday: entering collaboration zone — describe it
+  if (DAY === 2 && exit.to === 'collabZone' && !S.flags._collabZoneVisited) {
+    S.flags._collabZoneVisited = true;
+    setTimeout(() => toast("The Collaboration Zone. Where the server room used to be. Beanbags. A whiteboard covered in nonsense. A giant screen cycling motivational quotes."), 500);
+  }
+
+  // Tuesday: elevator lobby — floor directory
+  if (DAY === 2 && exit.to === 'elevLobby' && !S.flags._elevLobbyVisited) {
+    S.flags._elevLobbyVisited = true;
+    setTimeout(() => toast("The floor directory reads: 'Floor 7 (of 7).' On Monday, there was no such label."), 800);
+  }
+
+  // Tuesday: kitchen has moved
+  if (DAY === 2 && exit.to === 'kitchen' && !S.flags._kitchenMovedNoticed) {
+    S.flags._kitchenMovedNoticed = true;
+    setTimeout(() => toast("The kitchen is on the wrong side of the floor. You're sure of it. The fridge hums like nothing happened."), 500);
+  }
+
+  // Tuesday: open plan — first entry weirdness
+  if (DAY === 2 && exit.to === 'openPlan' && fromRoom !== 'openPlan' && !S.flags._openPlanWeird) {
+    S.flags._openPlanWeird = true;
+    setTimeout(() => {
+      toast("The building across the street looks closer than yesterday. And there's a desk where yours used to be — nameplate reads 'M. CHEN.' It looks like it's been used for years.");
+    }, 600);
+  }
+
+  // Tuesday: quiet car first entry
+  if (DAY === 2 && exit.to === 'quietCar' && !S.flags._quietCarVisited) {
+    S.flags._quietCarVisited = true;
+    setTimeout(() => toast("The Quiet Car. A glass-walled soundproof booth. Tiny. Peaceful. Your suspicion meter pauses here. But someone will knock in 15 minutes."), 500);
   }
 
   updateHUD();
@@ -937,23 +1450,38 @@ function tryInteract() {
   if (nearNPC('chad'))  { interactChad();  return; }
   if (nearNPC('derek')) { interactDerek(); return; }
   if (nearNPC('karen')) { interactKaren(); return; }
+  if (DAY === 2 && S.npcs.bryce && nearNPC('bryce')) { interactBryce(); return; }
 
   // Check adjacent tiles
   const adj = getAdjTiles();
   for (const {x,y,t} of adj) {
     if (t===T.PLAYER_DESK) { interactPlayerDesk(); return; }
     if (t===T.DESK && S.room==='managerOffice') { interactManagerDesk(); return; }
-    if (t===T.DESK && S.room==='openPlan') { interactGenericDesk(); return; }
+    if (t===T.DESK && S.room==='openPlan') {
+      // Tuesday: mystery desk at player's old spot
+      if (DAY === 2 && x === 4 && y === 2) { interactMysteryDesk(); return; }
+      interactGenericDesk(); return;
+    }
+    if (t===T.DESK && S.room==='supplyCloset' && DAY === 2) { interactSupplyDesk(); return; }
+    if (t===T.DESK && S.room==='conference' && DAY === 2) { interactConferenceDesk(); return; }
     if (t===T.PRINTER && S.room==='printerAlcove') { interactPrinter(); return; }
-    if (t===T.WHITEBOARD) { interactWhiteboard(); return; }
+    if (t===T.WHITEBOARD) {
+      if (DAY === 2 && S.room === 'collabZone') { interactCollabWhiteboard(); return; }
+      interactWhiteboard(); return;
+    }
+    if (t===T.SCREEN && S.room === 'collabZone') { interactCollabScreen(); return; }
+    if (t===T.FLOOR_PANEL) { interactFloorPanel(); return; }
     if (t===T.FRIDGE) { interactFridge(); return; }
     if (t===T.KEURIG) { interactKeurig(); return; }
     if (t===T.SHELF && S.room==='supplyCloset') { interactSupplyShelf(); return; }
+    if (t===T.SHELF && S.room==='managerOffice' && DAY === 2) { interactManagerShelf(); return; }
     if (t===T.CABINET && S.room==='elevLobby') { interactElevator(); return; }
     if (t===T.ELEVATOR) { interactElevator(); return; }
     if (t===T.CABINET && S.room==='hrCorridor') { interactPoster(x,y); return; }
     if (t===T.CABINET && S.room==='serverRoom') { interactServerTerminal(); return; }
     if (t===T.SERVER && S.room==='serverRoom') { interactServerTerminal(); return; }
+    if (t===T.CABINET && S.room==='supplyCloset' && DAY === 2) { interactSnackStash(); return; }
+    if (t===T.CABINET && S.room==='collabZone') { /* ignore */ return; }
   }
 
   // Use selected item
@@ -1019,6 +1547,7 @@ function interactManagerDesk() {
 
 function interactJess() {
   advanceTime(10);
+  if (DAY === 2) { interactJessTuesday(); return; }
   if (!S.flags.jessSpoken) {
     S.flags.jessSpoken = true;
     addToInventory('serverCode');
@@ -1028,6 +1557,45 @@ function interactJess() {
   } else {
     showDialogue('Jess', "Still here? GO. Don't let them take you too.", [{label:'...okay', cb:()=>closeDialogue()}]);
   }
+}
+
+function interactJessTuesday() {
+  if (S.flags.jessHintGiven) {
+    showDialogue('Jess', "The floor panel in the Collaboration Zone. That's your way out. Now go, before they reorganize again.", [{label:'...okay', cb:()=>closeDialogue()}]);
+    return;
+  }
+  if (!S.flags.jessTrusted) {
+    // Check for peace offering
+    if (hasItem('goodCoffee')) {
+      showDialogue('Jess',
+        "She eyes the coffee. '...Is that Derek\'s reserve blend?'\n\nShe takes it. Her expression softens.",
+        [{label:'Peace offering.', cb:()=>{
+          removeItem('goodCoffee');
+          S.flags.jessTrusted = true;
+          closeDialogue();
+          setTimeout(() => interactJessTuesday(), 300);
+        }}]);
+    } else if (hasItem('snackStash')) {
+      showDialogue('Jess',
+        "She eyes the snacks. '...Where did you find those?' A pause. 'Fine. Come here.'",
+        [{label:'Peace offering.', cb:()=>{
+          removeItem('snackStash');
+          S.flags.jessTrusted = true;
+          closeDialogue();
+          setTimeout(() => interactJessTuesday(), 300);
+        }}]);
+    } else {
+      showDialogue('Jess',
+        "She barely looks up. 'I'm not talking. Not after yesterday.'\n\n'Bring me something. The good coffee from Derek\'s office. Or that snack stash in the supply closet. Then we\'ll talk.'",
+        [{label:'I\'ll find something.', cb:()=>closeDialogue()}]);
+    }
+    return;
+  }
+  // Trusted — give the hint
+  S.flags.jessHintGiven = true;
+  showDialogue('Jess',
+    "She leans in close.\n\n'They remodeled overnight. I watched the cameras. Nobody came in — the rooms just... moved.'\n\n'Listen — in the Collaboration Zone, there's a loose floor panel. Pry it open. There's a maintenance crawlspace that leads under the floor to the elevator lobby. Bring a letter opener from the supply closet.'",
+    [{label:'Thanks, Jess. Stay safe.', cb:()=>closeDialogue()}]);
 }
 
 function interactChad() {
@@ -1123,6 +1691,25 @@ function interactSupplyShelf() {
   }
 }
 
+function interactConferenceDesk() {
+  if (!S.flags.teamFlyerTaken && !hasItem('teamFlyer')) {
+    showDialogue('Conference Table',
+      "The conference table is covered in printouts. One catches your eye — a neon-colored flyer for a \"TRUST FALL & TEAM SYNERGY WORKSHOP\" organized by someone named Bryce.\n\nThis seems like the kind of thing that would keep him busy...",
+      [{label:'Take the flyer', cb:()=>{
+        if (addToInventory('teamFlyer')) {
+          S.flags.teamFlyerTaken = true;
+          toast('Got: Team-Building Flyer');
+        }
+        closeDialogue();
+      }},
+      {label:'Leave it', cb:()=>closeDialogue()}]);
+  } else {
+    showDialogue('Conference Table',
+      "Scattered printouts, a dried-out whiteboard marker, and a half-empty water bottle from yesterday's meeting.",
+      [{label:'Move on', cb:()=>closeDialogue()}]);
+  }
+}
+
 function interactWhiteboard() {
   showDialogue('Whiteboard',
     "A sprawling mind map. Center: 'SYNERGY.' Arrows to 'COLLABORATION,' 'INNOVATION,' 'GROWTH.' All arrows loop back to 'SYNERGY.'",
@@ -1133,35 +1720,82 @@ function interactPoster(x, y) {
   const key = `${x},${y}`;
   S.posterReads[key] = (S.posterReads[key]||0) + 1;
   const c = S.posterReads[key];
-  const posters = [
-    ["TEAMWORK MAKES THE DREAM WORK", "THERE IS NO ESCAPE"],
-    ["INNOVATION STARTS HERE", "IT STARTED HERE. IT ENDS HERE."],
-    ["YOUR BEST WORK HAPPENS IN PERSON", "YOU WILL STAY UNTIL THE WORK IS DONE"],
-    ["VANTAGE SOLUTIONS: BUILDING TOMORROW", "TOMORROW WILL LOOK EXACTLY LIKE TODAY"],
-    ["COLLABORATE. COMMUNICATE. CONQUER.", "COMPLY. CONFORM. CONTINUE."],
-    ["GREAT THINGS HAPPEN TOGETHER", "NO ONE LEAVES ALONE"],
-  ];
+
+  let posters;
+  if (DAY === 2) {
+    // Tuesday posters — some reference Monday's route
+    const route = S.flags.mondayRoute;
+    const routePosters = route === 'server' || route === 'server_2'
+      ? [ // Route B references (used server room / vent)
+          ["CREATIVE SHORTCUTS LEAD TO CREATIVE DEAD ENDS", "THE VENTS REMEMBER"],
+          ["THE PATH LESS TRAVELED HAS BEEN SEALED", "DID YOU THINK WE WOULDN'T NOTICE?"],
+          ["COLLABORATION ZONES REPLACE ISOLATION", "THE SERVER ROOM NEVER EXISTED"],
+        ]
+      : [ // Route A references (used keycard)
+          ["KEYS TO SUCCESS AREN'T ALWAYS WHERE YOU LEFT THEM", "THE LOCKS HAVE CHANGED"],
+          ["TRUST IS EARNED, NOT SWIPED", "YOUR BADGE KNOWS WHERE YOU'VE BEEN"],
+          ["SECURITY UPGRADES PROTECT EVERYONE", "ESPECIALLY FROM YOU"],
+        ];
+    posters = [
+      ...routePosters,
+      ["CHANGE IS THE ONLY CONSTANT", "THE WALLS MOVED WHILE YOU SLEPT"],
+      ["EVERY DAY IS A FRESH START", "BUT WE REMEMBER YESTERDAY"],
+      ["GROWTH HAPPENS OUTSIDE YOUR COMFORT ZONE", "THERE IS NO COMFORT ZONE"],
+      ["TEAMWORK MAKES THE DREAM WORK", "THERE IS NO ESCAPE"],
+      ["YOUR PRESENCE IS YOUR POWER", "YOUR ABSENCE HAS BEEN NOTED"],
+      ["VANTAGE SOLUTIONS: BUILDING TOMORROW", "TOMORROW WILL LOOK EXACTLY LIKE TODAY"],
+    ];
+  } else {
+    posters = [
+      ["TEAMWORK MAKES THE DREAM WORK", "THERE IS NO ESCAPE"],
+      ["INNOVATION STARTS HERE", "IT STARTED HERE. IT ENDS HERE."],
+      ["YOUR BEST WORK HAPPENS IN PERSON", "YOU WILL STAY UNTIL THE WORK IS DONE"],
+      ["VANTAGE SOLUTIONS: BUILDING TOMORROW", "TOMORROW WILL LOOK EXACTLY LIKE TODAY"],
+      ["COLLABORATE. COMMUNICATE. CONQUER.", "COMPLY. CONFORM. CONTINUE."],
+      ["GREAT THINGS HAPPEN TOGETHER", "NO ONE LEAVES ALONE"],
+    ];
+  }
   const p = posters[(x*7+y*3) % posters.length];
   const text = c <= 1 ? `"${p[0]}"` : `"${p[0]}"\n\n[You look again. The text seems different now.]\n\n"${p[1]}"`;
   showDialogue('Motivational Poster', text, [{label: c>1 ? '...okay.' : 'Inspiring.', cb:()=>closeDialogue()}]);
 }
 
 function interactElevator() {
-  if (S.flags.badgeScannerOff) { doWin('server'); return; }
+  // Tuesday: crawlspace bypass
+  if (DAY === 2 && S.flags.crawlspaceUsed) { doWin('crawlspace'); return; }
+
+  if (S.flags.badgeScannerOff) { doWin(DAY === 1 ? 'server' : 'server_2'); return; }
+
   if (hasItem('elevKeycard')) {
-    showDialogue('Elevator Scanner',
-      "The scanner glows red. You hold up the override keycard. It flickers... then turns green.",
-      [{label:'Escape!', cb:()=>{ closeDialogue(); doWin('keycard'); }}]);
+    if (DAY === 2) {
+      // 2FA required on Tuesday
+      showDialogue('Elevator Scanner',
+        "You swipe the override keycard. The scanner flickers... then shows: '2FA REQUIRED. ENTER 4-DIGIT CODE.'",
+        [{label:'Enter the code', cb:()=>{ closeDialogue(); startCodeEntry(); }},
+         {label:'Back away', cb:()=>closeDialogue()}]);
+    } else {
+      showDialogue('Elevator Scanner',
+        "The scanner glows red. You hold up the override keycard. It flickers... then turns green.",
+        [{label:'Escape!', cb:()=>{ closeDialogue(); doWin('keycard'); }}]);
+    }
     return;
   }
   if (hasItem('badge')) {
-    showDialogue('Elevator Scanner',
-      "You scan Linda's badge. The scanner makes a sound like a dying printer.\n\n'INVALID: LINDA CHEN — TERMINATED MARCH 14'\n\nOh no, Linda.",
-      [{label:'...poor Linda.', cb:()=>{ addSuspicion(5); closeDialogue(); }}]);
+    if (DAY === 2) {
+      showDialogue('Elevator Scanner',
+        "You scan Linda's badge. 'BADGE DEACTIVATED. SYSTEM UPGRADE IN EFFECT.' Linda's badge is truly dead now.",
+        [{label:'Great.', cb:()=>{ closeDialogue(); }}]);
+    } else {
+      showDialogue('Elevator Scanner',
+        "You scan Linda's badge. The scanner makes a sound like a dying printer.\n\n'INVALID: LINDA CHEN — TERMINATED MARCH 14'\n\nOh no, Linda.",
+        [{label:'...poor Linda.', cb:()=>{ addSuspicion(5); closeDialogue(); }}]);
+    }
     return;
   }
   showDialogue('Elevator Scanner',
-    "The badge scanner glows an accusatory red. You need the override keycard from Derek's office, or disable it from the server room.",
+    DAY === 2
+      ? "The badge scanner glows red. It's been upgraded. You need the override keycard from Derek's office — and apparently a code now too."
+      : "The badge scanner glows an accusatory red. You need the override keycard from Derek's office, or disable it from the server room.",
     [{label:'Back away', cb:()=>closeDialogue()}]);
 }
 
@@ -1183,6 +1817,128 @@ function interactServerTerminal() {
     ]);
 }
 
+// --- Tuesday interactions ---
+
+function interactBryce() {
+  if (S.flags.bryceFollowing) {
+    showDialogue('Bryce',
+      "\"I just LOVE these organic hallway conversations. This is what they mean by culture, right? You can't get this on Zoom!\"",
+      [{label:'...sure, Bryce.', cb:()=>closeDialogue()}]);
+  } else {
+    showDialogue('Bryce',
+      "\"Hey!! Isn't it great we get to do this together? In person? I can literally feel the synergy. What are you working on? Actually, don't tell me — I can feel your energy and it's AMAZING.\"",
+      [{label:'Wow, Bryce.', cb:()=>closeDialogue()}]);
+  }
+}
+
+function interactFloorPanel() {
+  if (S.flags.floorPanelOpen) {
+    showDialogue('Maintenance Hatch',
+      "The crawlspace stretches into darkness toward the elevator lobby.",
+      [{label:'Crawl through', cb:()=>{
+        closeDialogue();
+        S.flags.crawlspaceUsed = true;
+        S.room = 'elevLobby'; S.px = 12; S.py = 8;
+        advanceTime(15);
+        toast("You crawl through the maintenance tunnel... and emerge in the elevator lobby. The scanner is behind you.");
+        doWin('crawlspace');
+      }},
+       {label:'Not yet', cb:()=>closeDialogue()}]);
+    return;
+  }
+  if (hasItem('letterOpener')) {
+    showDialogue('Loose Floor Panel',
+      "A floor panel. It shifts when you step on it. You wedge the letter opener under the edge and pry.\n\nIt comes up. Below — a maintenance crawlspace, stretching into darkness.",
+      [{label:'Open it', cb:()=>{
+        removeItem('letterOpener');
+        S.flags.floorPanelOpen = true;
+        closeDialogue();
+        toast("Floor panel opened. The crawlspace leads toward the elevator lobby.");
+      }},
+       {label:'Leave it', cb:()=>closeDialogue()}]);
+  } else {
+    showDialogue('Loose Floor Panel',
+      "A floor panel. It's slightly loose — you can feel it shift under your weight. But you can't get it up with your hands. You'd need something thin and sturdy to pry it open.",
+      [{label:'Walk away', cb:()=>closeDialogue()}]);
+  }
+}
+
+function interactCollabWhiteboard() {
+  const diagrams = [
+    "The whiteboard reads: 'SYNERGY MATRIX → ALIGNMENT PIPELINE → ???  → PROFIT'",
+    "A Venn diagram labeled 'Culture', 'Innovation', 'Disruption'. The overlap says 'LUNCH AND LEARNS'.",
+    "Someone wrote 'IF WE BUILD IT THEY WILL COME' in three colors. An arrow points to a drawing of a beanbag.",
+  ];
+  showDialogue('Collaboration Zone Whiteboard',
+    diagrams[Math.floor(Math.random() * diagrams.length)],
+    [{label:'...why.', cb:()=>closeDialogue()}]);
+}
+
+function interactCollabScreen() {
+  const quotes = [
+    '"Alone we can do so little; together we can do so much." — Posted above 47 empty beanbags.',
+    '"The only way to do great work is to love where you work." — Mandatory attendance required.',
+    '"Coming together is a beginning." — The screen flickers. For a moment, you see your own reflection.',
+  ];
+  showDialogue('Motivational Screen',
+    quotes[Math.floor(Math.random() * quotes.length)],
+    [{label:'Deep.', cb:()=>closeDialogue()}]);
+}
+
+function interactMysteryDesk() {
+  showDialogue('Unknown Desk',
+    "A desk with a nameplate: 'M. CHEN'. You've never seen this person. The desk looks like it's been used for years — coffee rings, worn keyboard, a family photo that somehow looks... familiar.",
+    [{label:'...unsettling.', cb:()=>closeDialogue()}]);
+}
+
+function interactSupplyDesk() {
+  // Letter opener on Tuesday supply closet desk
+  if (!hasItem('letterOpener')) {
+    showDialogue('Supply Desk',
+      "A forgotten desk in the supply closet. Among the clutter: a sharp letter opener.",
+      [{label:'Take the letter opener', cb:()=>{
+        addToInventory('letterOpener');
+        closeDialogue();
+        toast('Letter opener acquired.');
+      }},
+       {label:'Leave it', cb:()=>closeDialogue()}]);
+  } else {
+    showDialogue('Supply Desk', "Empty desk. You already took the letter opener.", [{label:'OK', cb:()=>closeDialogue()}]);
+  }
+}
+
+function interactSnackStash() {
+  // Cabinet in supply closet with snack stash (Tuesday)
+  if (!hasItem('snackStash')) {
+    showDialogue('Supply Cabinet',
+      "Behind some old binders... a stash of premium snacks. Someone's emergency supply. Jess might appreciate these.",
+      [{label:'Take the snacks', cb:()=>{
+        addToInventory('snackStash');
+        closeDialogue();
+        toast('Snack stash acquired. A peace offering for Jess.');
+      }},
+       {label:'Leave them', cb:()=>closeDialogue()}]);
+  } else {
+    showDialogue('Supply Cabinet', "Empty. You took the snacks.", [{label:'OK', cb:()=>closeDialogue()}]);
+  }
+}
+
+function interactManagerShelf() {
+  // Good coffee on Derek's shelf (Tuesday)
+  if (!hasItem('goodCoffee')) {
+    showDialogue("Derek's Bookshelf",
+      "Business books nobody's read. And on the top shelf — a bag of premium single-origin coffee. Derek's private reserve.",
+      [{label:'Take the coffee', cb:()=>{
+        addToInventory('goodCoffee');
+        closeDialogue();
+        toast("Derek's premium coffee acquired. Jess would appreciate this.");
+      }},
+       {label:'Leave it', cb:()=>closeDialogue()}]);
+  } else {
+    showDialogue("Derek's Bookshelf", "Business books and an empty shelf where the coffee was.", [{label:'OK', cb:()=>closeDialogue()}]);
+  }
+}
+
 function useSelectedItem() {
   const id = S.inventory[S.selItem];
   if (id === 'plaque' && S.room === S.npcs.derek.room) {
@@ -1194,6 +1950,18 @@ function useSelectedItem() {
         S.npcs.derek.frozen = 999;
         closeDialogue();
         toast("Derek is emotionally compromised. He won't move for 2 minutes.");
+      }}]);
+  } else if (id === 'teamFlyer' && DAY === 2 && S.npcs.bryce && S.npcs.bryce.room === S.room) {
+    showDialogue('Team-Building Flyer',
+      "You hand Bryce the team-building flyer. His eyes light up like a supernova.\n\n\"OH MY GOD. A TRUST FALL WORKSHOP?! I need to tell EVERYONE.\"",
+      [{label:'Watch him go', cb:()=>{
+        removeItem('teamFlyer');
+        S.flags.bryceFollowing = false;
+        S.flags.bryceDistracted = true;
+        S.flags.bryceDistractTimer = 180000; // 3 minutes
+        S.npcs.bryce.frozen = 999;
+        closeDialogue();
+        toast("Bryce sprints away to spread the word. He'll be busy for a while.");
       }}]);
   } else {
     toast(`${ITEMS[id].name}: ${ITEMS[id].desc}`);
@@ -1236,19 +2004,31 @@ function startPrinterGame() {
 let printerShowTimer = null;
 function showPrinterSeq() {
   document.getElementById('printer-prompt').textContent = 'Watch the sequence...';
+  // Clear all highlights first
+  for (let i = 0; i < 4; i++) document.getElementById(`pb${i}`).classList.remove('highlight');
   let idx = 0;
-  function next() {
-    if (idx > 0) document.getElementById(`pb${S.printerSeq[idx-1]}`).classList.remove('highlight');
+  function flashOn() {
     if (idx >= S.printerSeq.length) {
       S.printerPhase = 'inputting';
       document.getElementById('printer-prompt').textContent = 'Now repeat it!';
       return;
     }
-    document.getElementById(`pb${S.printerSeq[idx]}`).classList.add('highlight');
-    idx++;
-    printerShowTimer = setTimeout(next, 700);
+    const btn = document.getElementById(`pb${S.printerSeq[idx]}`);
+    btn.classList.add('highlight');
+    // Scale pulse for visual pop
+    btn.style.transform = 'scale(1.15)';
+    printerShowTimer = setTimeout(flashOff, 450);
   }
-  next();
+  function flashOff() {
+    const btn = document.getElementById(`pb${S.printerSeq[idx]}`);
+    btn.classList.remove('highlight');
+    btn.style.transform = 'scale(1)';
+    idx++;
+    // Brief gap between flashes so repeated buttons are distinguishable
+    printerShowTimer = setTimeout(flashOn, 250);
+  }
+  // Initial delay before starting
+  printerShowTimer = setTimeout(flashOn, 400);
 }
 
 function printerInput(btnIdx) {
@@ -1299,18 +2079,47 @@ function cancelPrinter() {
 // NPC MOVEMENT
 // ============================================================
 function moveNPCs() {
-  movePatrol('derek', S.suspicion>=30 ? 'high' : 'low');
-  movePatrol('karen', S.suspicion>=60 ? 'high' : 'low');
+  const pats = getPatrols();
+  movePatrol('derek', S.suspicion>=30 ? 'high' : 'low', pats);
+
+  // Karen: on Tuesday with high alert, she patrols high from the start
+  const karenThreshold = (DAY === 2 && S.flags.karenHighAlert) ? 30 : 60;
+  movePatrol('karen', S.suspicion>=karenThreshold ? 'high' : 'low', pats);
+
+  // Bryce (Tuesday only)
+  if (DAY === 2 && S.npcs.bryce) {
+    if (S.flags.bryceFollowing) {
+      // Bryce follows the player — teleports to same room
+      S.npcs.bryce.room = S.room;
+      // Walk toward player
+      if (S.npcs.bryce.x !== S.px || S.npcs.bryce.y !== S.py) {
+        stepToward(S.npcs.bryce, S.px, S.py);
+      }
+    } else if (!S.flags.bryceDistracted) {
+      movePatrol('bryce', 'low', pats);
+    }
+  }
+
+  // Derek waiting behavior on Tuesday — freeze longer at door waypoints
+  if (DAY === 2) {
+    const derek = S.npcs.derek;
+    // If Derek just arrived at HR corridor doorway, he waits
+    if (derek.room === 'hrCorridor' && derek.x >= 22 && derek.y === 7 && derek.frozen === 0) {
+      derek.frozen = Math.ceil(30000/700); // ~43 ticks = ~30s of waiting outside
+    }
+  }
 }
 
-function movePatrol(id, level) {
+function movePatrol(id, level, pats) {
+  pats = pats || getPatrols();
   const npc = S.npcs[id];
+  if (!pats[id] || !pats[id][level]) return;
   if (npc.frozen > 0) { npc.frozen--; return; }
 
   // When patrol level changes, find closest waypoint in current room to avoid teleporting
   if (npc._lastLevel !== level) {
     npc._lastLevel = level;
-    const pat = PATROLS[id][level];
+    const pat = pats[id][level];
     // Find a waypoint in the NPC's current room
     let bestIdx = -1, bestDist = Infinity;
     for (let i = 0; i < pat.length; i++) {
@@ -1329,12 +2138,26 @@ function movePatrol(id, level) {
     }
   }
 
-  const pat = PATROLS[id][level];
+  const pat = pats[id][level];
   const tgt = pat[npc.patIdx % pat.length];
   if (npc.room !== tgt.room) {
+    // Walk toward nearest door before teleporting
+    const room = ROOMS[npc.room];
+    if (room && room.exits) {
+      const targetExit = room.exits.find(e => e.to === tgt.room);
+      if (targetExit) {
+        const dx = targetExit.doorX - npc.x, dy = targetExit.doorY - npc.y;
+        if (Math.abs(dx) + Math.abs(dy) > 1) {
+          // Walk toward the door first
+          stepToward(npc, targetExit.doorX, targetExit.doorY);
+          return;
+        }
+      }
+    }
+    // At the door (or no door found) — teleport to next room
     npc.room = tgt.room; npc.x = tgt.x; npc.y = tgt.y;
     npc.patIdx = (npc.patIdx+1) % pat.length;
-    npc.frozen = 4; // brief pause after room transition (~2.8s cooldown)
+    npc.frozen = 6; // pause after room transition (~4.2s cooldown)
     return;
   }
   if (npc.x===tgt.x && npc.y===tgt.y) {
@@ -1359,16 +2182,40 @@ function checkDetection() {
   if (derek.room===S.room && !S.flags.derekDistracted) {
     const dist = Math.abs(derek.x-S.px)+Math.abs(derek.y-S.py);
     if (dist <= 4 && S.room !== 'openPlan' && hasLOS(derek)) {
-      addSuspicion(20);
-      toast("Derek spots you! 'Shouldn't you be at your desk?'");
+      const susDelta = (DAY === 2) ? 25 : 20;
+      addSuspicion(susDelta);
+      if (DAY === 2) {
+        toast("Derek spots you! He taps something on his tablet. +" + susDelta + " suspicion.");
+      } else {
+        toast("Derek spots you! 'Shouldn't you be at your desk?'");
+      }
     }
   }
   const karen = S.npcs.karen;
   if (karen.room===S.room) {
     const dist = Math.abs(karen.x-S.px)+Math.abs(karen.y-S.py);
     if (dist <= 3 && hasLOS(karen)) {
-      addSuspicion(15); advanceTime(30);
-      toast("Karen intercepts you! 30 min + 15 suspicion.");
+      const timeCost = (DAY === 2) ? 40 : 30;
+      addSuspicion(15); advanceTime(timeCost);
+      toast(`Karen intercepts you! ${timeCost} min + 15 suspicion.`);
+    }
+  }
+
+  // Bryce detection (Tuesday only) — mandatory conversation, no suspicion
+  // Grace period: don't detect in first 30 game-minutes (let player get moving)
+  if (DAY === 2 && S.npcs.bryce && !S.flags.bryceFollowing && !S.flags.bryceDistracted && S.time > 9*60+30) {
+    // Cooldown after Bryce stops following — don't re-detect for 60 game-minutes
+    if (!S.flags._bryceDetectCooldown || S.time >= S.flags._bryceDetectCooldown) {
+      const bryce = S.npcs.bryce;
+      if (bryce.room === S.room && S.room !== 'quietCar') {
+        const dist = Math.abs(bryce.x-S.px)+Math.abs(bryce.y-S.py);
+        if (dist <= 3) {
+          S.flags.bryceFollowing = true;
+          S.flags.bryceFollowRooms = 2;
+          advanceTime(20);
+          toast("Bryce corners you! 'Isn't it great we get to do this together? In person?' 20 min lost. He's following you.");
+        }
+      }
     }
   }
 }
@@ -1392,7 +2239,8 @@ function hasLOS(npc) {
 let slackTimerInterval = null, slackTimeout = null;
 
 function triggerSlack() {
-  const msg = SLACK_MSGS[Math.floor(Math.random()*SLACK_MSGS.length)];
+  const msgs = getSlackMsgs();
+  const msg = msgs[Math.floor(Math.random()*msgs.length)];
   S.slackVisible = true;
   S.slackCountdown = 40 + Math.random()*30;
   document.getElementById('slack-sender').textContent = msg.sender;
@@ -1455,23 +2303,74 @@ function selectItem(slot) {
 // ============================================================
 // DIALOGUE
 // ============================================================
+let dialogueOptions = [];
+let dialogueSelectedIdx = 0;
+
 function showDialogue(speaker, text, options) {
   S.dialogue = true;
+  dialogueOptions = options;
+  dialogueSelectedIdx = 0;
   document.getElementById('dialogue-speaker').textContent = speaker;
   document.getElementById('dialogue-text').textContent = text;
   const optDiv = document.getElementById('dialogue-options');
   optDiv.innerHTML = '';
-  for (const opt of options) {
+  for (let i = 0; i < options.length; i++) {
     const b = document.createElement('button');
     b.className = 'dialogue-btn';
-    b.textContent = opt.label;
-    b.onclick = opt.cb;
+    if (i === 0) b.classList.add('kbd-focus');
+    b.textContent = (options.length > 1 ? `[${i+1}] ` : '') + options[i].label;
+    b.id = 'dlg-btn-' + i;
+    b.onclick = options[i].cb;
     optDiv.appendChild(b);
   }
   document.getElementById('dialogue-box').style.display = 'block';
 }
+
+function updateDialogueFocus() {
+  for (let i = 0; i < dialogueOptions.length; i++) {
+    const b = document.getElementById('dlg-btn-' + i);
+    if (b) b.classList.toggle('kbd-focus', i === dialogueSelectedIdx);
+  }
+}
+
+function handleDialogueKey(e) {
+  if (!S.dialogue || !dialogueOptions.length) return false;
+
+  // Number keys select option directly
+  const num = parseInt(e.key);
+  if (num >= 1 && num <= dialogueOptions.length) {
+    dialogueOptions[num-1].cb();
+    return true;
+  }
+
+  // Arrow keys / Tab to navigate options
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Tab') {
+    e.preventDefault();
+    dialogueSelectedIdx = (dialogueSelectedIdx + 1) % dialogueOptions.length;
+    updateDialogueFocus();
+    return true;
+  }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    dialogueSelectedIdx = (dialogueSelectedIdx - 1 + dialogueOptions.length) % dialogueOptions.length;
+    updateDialogueFocus();
+    return true;
+  }
+
+  // Enter/Space/E to confirm selected option
+  if (e.key === 'Enter' || e.key === ' ' || e.key === 'e' || e.key === 'E') {
+    e.preventDefault();
+    dialogueOptions[dialogueSelectedIdx].cb();
+    return true;
+  }
+
+  return false;
+}
+
 function closeDialogue() {
   S.dialogue = false;
+  dialogueOptions = [];
+  dialogueSelectedIdx = 0;
   document.getElementById('dialogue-box').style.display = 'none';
 }
 
@@ -1484,6 +2383,8 @@ function advanceTime(min) {
   updateHUD();
 }
 function addSuspicion(amt) {
+  // Quiet Car pauses positive suspicion gain
+  if (DAY === 2 && S.room === 'quietCar' && amt > 0) return;
   S.suspicion = Math.max(0, Math.min(100, S.suspicion + amt));
   if (S.suspicion > S.peakSuspicion) S.peakSuspicion = S.suspicion;
   if (S.suspicion >= 100) doLoseSuspicion();
@@ -1524,32 +2425,56 @@ function fmtTime(t) { const h=Math.floor(t/60), m=t%60; return `${h>12?h-12:h}:$
 
 function doWin(route) {
   S.gameOver = true; S.route = route;
+  document.getElementById('allhands-bar').style.display = 'none';
+  document.getElementById('code-entry').style.display = 'none';
   const es = document.getElementById('end-screen');
   es.className = 'win'; es.style.display = 'flex';
   document.getElementById('end-title').style.color = '#4A90D9';
   document.getElementById('end-title').textContent = 'OUT OF OFFICE';
-  document.getElementById('end-body').innerHTML = `"You made it out. Today."<br><br>"See you tomorrow."`;
-  document.getElementById('end-stats').innerHTML =
-    `Escaped at ${fmtTime(S.time)} | Peak suspicion: ${Math.round(S.peakSuspicion)}% | Route: ${route==='keycard'?'Keycard':'Server Room'}<br><br><em style="font-size:11px;color:#4A6080">Tuesday is coming...</em>`;
+
+  if (DAY === 1) {
+    saveMondayData(route, S.peakSuspicion);
+    document.getElementById('end-body').innerHTML = `"You made it out. Today."<br><br>"See you tomorrow."`;
+    document.getElementById('end-stats').innerHTML =
+      `Escaped at ${fmtTime(S.time)} | Peak suspicion: ${Math.round(S.peakSuspicion)}% | Route: ${route==='keycard'?'Keycard':'Server Room'}<br><br><em style="font-size:11px;color:#4A6080">Tuesday is coming...</em>`;
+  } else {
+    document.getElementById('end-body').innerHTML =
+      `The elevator doors open. The parking garage is... longer than you remember.<br><br>You walk to your car. There's a memo on the windshield:<br><br><em>"Exciting news! Wednesday's theme is 'Wear Your Team Spirit!' Attendance is strongly encouraged."</em><br><br>"You made it out. Again. See you tomorrow."`;
+    const routeName = route === 'keycard_2fa' ? 'Keycard + 2FA' : route === 'crawlspace' ? 'Crawlspace' : route;
+    document.getElementById('end-stats').innerHTML =
+      `Escaped at ${fmtTime(S.time)} | Peak suspicion: ${Math.round(S.peakSuspicion)}% | Route: ${routeName}<br><br><em style="font-size:11px;color:#4A6080">Wednesday is coming...</em>`;
+  }
 }
 function doLoseClock() {
   if (S.gameOver) return; S.gameOver = true;
+  document.getElementById('allhands-bar').style.display = 'none';
   const es = document.getElementById('end-screen');
   es.className = 'lose-time'; es.style.display = 'flex';
   document.getElementById('end-title').style.color = '#D94A4A';
   document.getElementById('end-title').textContent = 'MANDATORY FUN HOUR';
-  document.getElementById('end-body').innerHTML =
-    `A banner drops from the ceiling. Balloons appear.<br><br>"You didn't make it out in time. The team-building exercise is... escape room themed."<br><br><em>The irony is not lost on you.</em>`;
+  if (DAY === 2) {
+    document.getElementById('end-body').innerHTML =
+      `"Great news — we're extending the workday! Vantage Solutions is piloting a new 7 PM end time. For your growth."<br><br><em>The fluorescent lights seem brighter than yesterday.</em>`;
+  } else {
+    document.getElementById('end-body').innerHTML =
+      `A banner drops from the ceiling. Balloons appear.<br><br>"You didn't make it out in time. The team-building exercise is... escape room themed."<br><br><em>The irony is not lost on you.</em>`;
+  }
   document.getElementById('end-stats').textContent = `Peak suspicion: ${Math.round(S.peakSuspicion)}%`;
 }
 function doLoseSuspicion() {
   if (S.gameOver) return; S.gameOver = true;
+  document.getElementById('allhands-bar').style.display = 'none';
   const es = document.getElementById('end-screen');
   es.className = 'lose-suspicion'; es.style.display = 'flex';
   document.getElementById('end-title').style.color = '#D94A4A';
   document.getElementById('end-title').textContent = 'PERFORMANCE REVIEW';
-  document.getElementById('end-body').innerHTML =
-    `<em>"So... we've noticed some patterns in your engagement metrics."</em><br><br>"Let's talk about your future at Vantage Solutions."<br><br><em style="font-size:11px;color:#8B4040">The fluorescent light flickers. Derek does not blink.</em>`;
+  if (DAY === 2) {
+    document.getElementById('end-body').innerHTML =
+      `The same conference room. Derek and Karen are both there this time.<br><br><em>"We've been looking at your patterns across both days now. Let's talk about commitment."</em><br><br><em style="font-size:11px;color:#8B4040">Derek has a tablet. He's been taking notes. The notes go back further than two days.</em>`;
+  } else {
+    document.getElementById('end-body').innerHTML =
+      `<em>"So... we've noticed some patterns in your engagement metrics."</em><br><br>"Let's talk about your future at Vantage Solutions."<br><br><em style="font-size:11px;color:#8B4040">The fluorescent light flickers. Derek does not blink.</em>`;
+  }
   document.getElementById('end-stats').textContent = 'Engagement Score: 100% (critical)';
 }
 
@@ -1562,6 +2487,113 @@ function toast(msg) {
   t.textContent = msg; t.style.opacity = '1';
   if (toastTO) clearTimeout(toastTO);
   toastTO = setTimeout(()=>{t.style.opacity='0';}, 3500);
+}
+
+// ============================================================
+// TUESDAY MECHANICS
+// ============================================================
+
+// All-hands meeting trap
+function triggerAllHands() {
+  S.flags.allHandsTriggered = true;
+  S.flags.allHandsCountdown = 60000; // 60 seconds real time
+  document.getElementById('allhands-bar').style.display = 'block';
+  toast("⚠️ ALL-HANDS MEETING ANNOUNCED. Find cover in the Quiet Car or Supply Closet!");
+}
+
+function resolveAllHands() {
+  S.flags.allHandsCountdown = -1;
+  if (S.room === 'quietCar' || S.room === 'supplyCloset') {
+    toast("You avoided the all-hands. Smart move.");
+  } else {
+    advanceTime(90);
+    addSuspicion(15);
+    showDialogue('ALL-HANDS MEETING',
+      '"Let\'s align on our Q3 synergy metrics." 90 minutes of your life, gone. You tried to leave early.',
+      [{label:'...', cb:()=>closeDialogue()}]);
+  }
+}
+
+// 2FA Code Entry for Elevator
+let codeEntryTimeout = null;
+let codeEntryInput = '';
+
+function startCodeEntry() {
+  S.flags.codeEntryActive = true;
+  codeEntryInput = '';
+  const ce = document.getElementById('code-entry');
+  ce.style.display = 'block';
+
+  // Create digit display
+  const digits = document.getElementById('code-digits');
+  digits.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const d = document.createElement('div');
+    d.className = 'code-digit';
+    d.id = 'cdigit' + i;
+    d.textContent = '_';
+    digits.appendChild(d);
+  }
+
+  // Timer bar
+  const bar = document.getElementById('code-timer-bar');
+  bar.style.width = '100%';
+  const startTime = Date.now();
+
+  // 10 second timer
+  const timerInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const pct = Math.max(0, 100 - (elapsed / 100)); // 10000ms = 100%
+    bar.style.width = pct + '%';
+  }, 50);
+
+  codeEntryTimeout = setTimeout(() => {
+    clearInterval(timerInterval);
+    failCodeEntry();
+  }, 10000);
+
+  // Key handler
+  document.addEventListener('keydown', codeKeyHandler);
+}
+
+function codeKeyHandler(e) {
+  if (!S.flags.codeEntryActive) return;
+  if (e.key >= '0' && e.key <= '9') {
+    const idx = codeEntryInput.length;
+    codeEntryInput += e.key;
+    const d = document.getElementById('cdigit' + idx);
+    if (d) { d.textContent = e.key; d.classList.add('filled'); }
+
+    if (codeEntryInput.length === 4) {
+      document.removeEventListener('keydown', codeKeyHandler);
+      clearTimeout(codeEntryTimeout);
+      if (codeEntryInput === S.flags.stickyNoteCode) {
+        successCodeEntry();
+      } else {
+        // Wrong code — flash red
+        for (let i = 0; i < 4; i++) {
+          const d = document.getElementById('cdigit' + i);
+          if (d) d.classList.add('wrong');
+        }
+        setTimeout(failCodeEntry, 800);
+      }
+    }
+  }
+}
+
+function successCodeEntry() {
+  S.flags.codeEntryActive = false;
+  document.getElementById('code-entry').style.display = 'none';
+  document.getElementById('code-prompt').textContent = 'ACCESS GRANTED';
+  doWin('keycard_2fa');
+}
+
+function failCodeEntry() {
+  S.flags.codeEntryActive = false;
+  document.removeEventListener('keydown', codeKeyHandler);
+  document.getElementById('code-entry').style.display = 'none';
+  addSuspicion(15);
+  toast("Code entry failed! The scanner beeps angrily. +15 suspicion.");
 }
 
 // ============================================================
@@ -1859,15 +2891,64 @@ function drawTile(type, x, y, col, row) {
         ctx.beginPath(); ctx.arc(x+TILE/2,y+19,2,0,Math.PI*2); ctx.fill();
       }
       break;
+    case T.FLOOR_PANEL:
+      drawFloorBg();
+      // Loose floor panel — slightly different shade, visible seam
+      ctx.fillStyle = S.flags.floorPanelOpen ? '#4A3A2A' : '#D0C8B8';
+      ctx.fillRect(x+1,y+1,TILE-2,TILE-2);
+      ctx.strokeStyle = S.flags.floorPanelOpen ? '#2A1A0A' : '#A09880';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x+2,y+2,TILE-4,TILE-4);
+      if (S.flags.floorPanelOpen) {
+        // Dark opening
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(x+4,y+4,TILE-8,TILE-8);
+        ctx.fillStyle = '#333';
+        ctx.font = '8px monospace';
+        ctx.fillText('↓', x+TILE/2-3, y+TILE/2+3);
+      } else {
+        // Scratches suggesting it's loose
+        ctx.strokeStyle = '#B0A890';
+        ctx.beginPath(); ctx.moveTo(x+4,y+4); ctx.lineTo(x+TILE-4,y+TILE-4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x+TILE-4,y+4); ctx.lineTo(x+4,y+TILE-4); ctx.stroke();
+      }
+      break;
+    case T.GLASS_WALL:
+      // Transparent glass wall — light blue tint
+      ctx.fillStyle = 'rgba(150,200,230,0.4)';
+      ctx.fillRect(x,y,TILE,TILE);
+      ctx.strokeStyle = 'rgba(100,180,220,0.7)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x+1,y+1,TILE-2,TILE-2);
+      // Highlight streak
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x+3,y+2); ctx.lineTo(x+3,y+TILE-2); ctx.stroke();
+      break;
+    case T.SCREEN:
+      drawFloorBg();
+      // Big motivational screen
+      ctx.fillStyle = '#222';
+      ctx.fillRect(x+1,y+1,TILE-2,TILE-2);
+      ctx.fillStyle = '#1a3a5a';
+      ctx.fillRect(x+3,y+3,TILE-6,TILE-6);
+      // Pulsing glow effect
+      const screenGlow = 0.5 + 0.3 * Math.sin(Date.now()/800);
+      ctx.fillStyle = `rgba(74,144,217,${screenGlow})`;
+      ctx.fillRect(x+4,y+4,TILE-8,TILE-8);
+      ctx.fillStyle = '#8BA7C7';
+      ctx.font = '6px monospace';
+      ctx.fillText('SYNC', x+5, y+TILE/2+2);
+      break;
   }
 }
 
 // ============================================================
 // CHARACTER RENDERING
 // ============================================================
-const NPC_COLORS = { derek:'#D94A4A', karen:'#D9A84A', jess:'#4AD97A', chad:'#9B59B6' };
-const NPC_LABELS = { derek:'DEREK', karen:'KAREN', jess:'JESS', chad:'CHAD' };
-const NPC_HAIR = { derek:'#5A3A2A', karen:'#C09040', jess:'#2A2A2A', chad:'#D0B060' };
+const NPC_COLORS = { derek:'#D94A4A', karen:'#D9A84A', jess:'#4AD97A', chad:'#9B59B6', bryce:'#E91E9B' };
+const NPC_LABELS = { derek:'DEREK', karen:'KAREN', jess:'JESS', chad:'CHAD', bryce:'BRYCE' };
+const NPC_HAIR = { derek:'#5A3A2A', karen:'#C09040', jess:'#2A2A2A', chad:'#D0B060', bryce:'#D0A060' };
 
 function drawPlayer() {
   const cx = S.px*TILE+TILE/2, cy = S.py*TILE+TILE/2;
@@ -1966,7 +3047,7 @@ function drawHints() {
   // Tile hints
   const adj = getAdjTiles();
   for (const {x,y,t} of adj) {
-    const interactable = [T.PLAYER_DESK,T.DESK,T.PRINTER,T.WHITEBOARD,T.FRIDGE,T.KEURIG,T.SHELF,T.CABINET,T.ELEVATOR,T.SERVER].includes(t);
+    const interactable = [T.PLAYER_DESK,T.DESK,T.PRINTER,T.WHITEBOARD,T.FRIDGE,T.KEURIG,T.SHELF,T.CABINET,T.ELEVATOR,T.SERVER,T.FLOOR_PANEL,T.SCREEN,T.VENT].includes(t);
     if (interactable) {
       drawHintLabel(x*TILE+TILE/2, y*TILE-2, '[E]');
       break;
@@ -1986,7 +3067,7 @@ function drawHintLabel(x, y, text) {
 // ============================================================
 // MINIMAP
 // ============================================================
-const ROOM_POS = {
+const ROOM_POS_MONDAY = {
   kitchen:      {x:0,  y:20},
   openPlan:     {x:25, y:20},
   conference:   {x:55, y:20},
@@ -1998,13 +3079,28 @@ const ROOM_POS = {
   managerOffice:{x:60, y:5},
   elevLobby:    {x:35, y:-8},
 };
+const ROOM_POS_TUESDAY = {
+  conference:   {x:0,  y:20},  // swapped with kitchen
+  openPlan:     {x:25, y:20},
+  kitchen:      {x:55, y:20},  // swapped with conference
+  supplyCloset: {x:15, y:40},
+  printerAlcove:{x:50, y:40},
+  wellnessRoom: {x:30, y:45},
+  collabZone:   {x:30, y:55},  // replaces serverRoom
+  quietCar:     {x:10, y:45},  // new room
+  hrCorridor:   {x:35, y:5},
+  managerOffice:{x:60, y:5},
+  elevLobby:    {x:35, y:-8},
+};
+function getRoomPos() { return DAY === 2 ? ROOM_POS_TUESDAY : ROOM_POS_MONDAY; }
 
 function drawMinimap() {
   mmCtx.clearRect(0,0,100,60);
   mmCtx.fillStyle = 'rgba(26,26,46,0.9)';
   mmCtx.fillRect(0,0,100,60);
 
-  for (const [id, pos] of Object.entries(ROOM_POS)) {
+  const roomPos = getRoomPos();
+  for (const [id, pos] of Object.entries(roomPos)) {
     const x = pos.x+5, y = pos.y+5;
     mmCtx.fillStyle = id===S.room ? '#4A90D9' : 'rgba(100,120,140,0.4)';
     mmCtx.fillRect(x, y, 18, 10);
@@ -2014,7 +3110,7 @@ function drawMinimap() {
   }
 
   // Player dot
-  const rp = ROOM_POS[S.room];
+  const rp = roomPos[S.room];
   if (rp) {
     const dotX = rp.x+5 + (S.px/COLS)*18;
     const dotY = rp.y+5 + (S.py/ROWS)*10;
