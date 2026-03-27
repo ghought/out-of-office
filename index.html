@@ -89,28 +89,106 @@
     text-transform: uppercase; letter-spacing: 1px;
   }
 
-  /* Title screen */
+  /* Title screen — 90s arcade style */
   #title-screen {
     position: absolute; top: 0; left: 0;
     width: 800px; height: 480px;
-    background: #1a1a2e;
+    background: #0a0a18;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    z-index: 200; gap: 16px;
+    z-index: 200; gap: 0;
+    overflow: hidden;
+    padding: 12px 0;
   }
-  #title-screen h1 { font-size: 48px; color: #4A90D9; letter-spacing: 6px; text-transform: uppercase; }
+  #title-screen::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px),
+      radial-gradient(ellipse at center, rgba(74,144,217,0.08) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  #title-screen > *:not(.title-stars) { position: relative; z-index: 1; }
+  .title-office-scene {
+    display: flex; gap: 6px; align-items: flex-end; margin-bottom: 6px;
+    opacity: 0.7; filter: brightness(0.8);
+  }
+  .title-office-scene .scene-desk {
+    width: 24px; height: 16px; background: #6B4E3D; border-radius: 2px 2px 0 0;
+    position: relative;
+  }
+  .title-office-scene .scene-desk::after {
+    content: ''; position: absolute; top: 2px; left: 3px;
+    width: 10px; height: 6px; background: #3366AA; border-radius: 1px;
+  }
+  .title-office-scene .scene-chair {
+    width: 14px; height: 14px; background: #4A6FA5; border-radius: 3px 3px 0 0;
+  }
+  .title-office-scene .scene-plant {
+    width: 12px; height: 20px; position: relative;
+  }
+  .title-office-scene .scene-plant::before {
+    content: ''; position: absolute; bottom: 0; left: 2px;
+    width: 8px; height: 8px; background: #8B6914; border-radius: 1px;
+  }
+  .title-office-scene .scene-plant::after {
+    content: ''; position: absolute; bottom: 6px; left: 0px;
+    width: 12px; height: 12px; background: #2D8B46; border-radius: 50%;
+  }
+  #title-screen .company {
+    font-size: 10px; color: #6B8BAF; letter-spacing: 6px; text-transform: uppercase;
+    margin-bottom: 0;
+  }
+  #title-screen h1 {
+    font-size: 38px; color: #FFF; letter-spacing: 8px; text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(74,144,217,0.8), 0 0 40px rgba(74,144,217,0.4), 0 3px 0 #2C3E50;
+    animation: titlePulse 3s ease-in-out infinite;
+    margin: 0;
+  }
+  @keyframes titlePulse {
+    0%, 100% { text-shadow: 0 0 20px rgba(74,144,217,0.8), 0 0 40px rgba(74,144,217,0.4), 0 3px 0 #2C3E50; }
+    50% { text-shadow: 0 0 30px rgba(74,144,217,1), 0 0 60px rgba(74,144,217,0.6), 0 3px 0 #2C3E50, 0 0 80px rgba(255,215,0,0.15); }
+  }
   #title-screen .tagline {
-    font-size: 13px; color: #8BA7C7; letter-spacing: 2px;
-    max-width: 500px; text-align: center; line-height: 1.6;
+    font-size: 11px; color: #FFD700; letter-spacing: 2px;
+    max-width: 500px; text-align: center; line-height: 1.3;
+    text-shadow: 0 0 10px rgba(255,215,0,0.3);
+    margin: 4px 0 6px;
   }
-  #title-screen .company { font-size: 11px; color: #4A90D9; letter-spacing: 4px; text-transform: uppercase; margin-top: 8px; }
+  .title-separator {
+    width: 300px; height: 2px; margin: 0 auto 4px;
+    background: linear-gradient(90deg, transparent, #4A90D9, #FFD700, #4A90D9, transparent);
+  }
   .btn {
-    background: #2C3E50; color: #4A90D9; border: 2px solid #4A90D9;
-    padding: 10px 32px; font-family: 'Courier New', monospace;
-    font-size: 14px; letter-spacing: 2px; text-transform: uppercase;
-    cursor: pointer; margin-top: 16px; transition: all 0.2s;
+    background: #1a1a2e; color: #4A90D9; border: 2px solid #4A90D9;
+    padding: 8px 28px; font-family: 'Courier New', monospace;
+    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.15s; position: relative;
+    text-shadow: 0 0 8px rgba(74,144,217,0.4);
   }
-  .btn:hover { background: #4A90D9; color: #1a1a2e; }
+  .btn:hover {
+    background: #4A90D9; color: #0a0a18; box-shadow: 0 0 20px rgba(74,144,217,0.5), inset 0 0 20px rgba(255,255,255,0.1);
+    text-shadow: none; transform: scale(1.05);
+  }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn:disabled:hover { background: #1a1a2e; color: #4A90D9; box-shadow: none; transform: none; }
+  .title-coin-insert {
+    font-size: 10px; color: #8BA7C7; letter-spacing: 3px;
+    animation: blink90s 1.2s step-end infinite; margin-top: 4px;
+  }
+  @keyframes blink90s { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .title-controls {
+    font-size: 9px; color: #3A5A7A; line-height: 1.6; margin-top: 4px;
+    text-align: center; letter-spacing: 1px;
+  }
+  .title-controls span { color: #5A8AAA; }
+  .title-high-score {
+    font-size: 9px; color: #4A90D9; letter-spacing: 2px; margin-top: 2px;
+    opacity: 0.6;
+  }
+  .title-stars {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+  }
 
   /* Dialogue */
   #dialogue-box {
@@ -226,6 +304,97 @@
     font-size: 8px; color: #8BA7C7; text-align: center;
     letter-spacing: 1px; margin-top: 3px;
   }
+
+  /* Music toggle button */
+  #music-toggle {
+    position: fixed; top: 10px; right: 10px; z-index: 500;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(30,30,50,0.85); border: 2px solid #4A90D9;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; user-select: none;
+    transition: border-color 0.2s, transform 0.1s;
+  }
+  #music-toggle:hover { border-color: #FFD700; transform: scale(1.1); }
+  #music-toggle.playing { border-color: #40D080; }
+
+  /* Shared mini-game overlay styles */
+  .minigame-overlay {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    background: #2C3E50; border: 2px solid #4A90D9; padding: 20px;
+    z-index: 200; font-family: 'Courier New', monospace; color: #E8E4DE;
+    display: none;
+  }
+  .minigame-title { font-size: 16px; letter-spacing: 2px; text-transform: uppercase; color: #4A90D9; text-align: center; margin-bottom: 12px; }
+  .minigame-timer { width: 100%; height: 6px; background: #1a1a2e; margin: 8px 0; border-radius: 3px; overflow: hidden; }
+  .minigame-timer-fill { height: 100%; background: #4A90D9; transition: width 0.1s linear; }
+  .minigame-btn { background: #1a1a2e; color: #8BA7C7; border: 1px solid #4A90D9; padding: 8px 16px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; letter-spacing: 1px; }
+  .minigame-btn:hover { background: #2C3E50; color: #E8E4DE; border-color: #FFD700; }
+  .minigame-btn.mg-selected { background: #2C3E50; color: #E8E4DE; border-color: #FFD700; box-shadow: 0 0 4px rgba(255,215,0,0.4); }
+
+  /* Standup game */
+  #standup-game { width: 480px; max-width: 90%; }
+  #standup-game .standup-prompt { font-size: 13px; color: #E8E4DE; margin: 12px 0; line-height: 1.6; text-align: center; }
+  #standup-game .standup-answers { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+  #standup-game .standup-answers .minigame-btn { text-align: left; padding: 10px 14px; font-size: 12px; }
+  #standup-game .standup-progress { display: flex; gap: 6px; justify-content: center; margin: 10px 0; }
+  #standup-game .standup-dot { width: 10px; height: 10px; border-radius: 50%; background: #1a1a2e; border: 1px solid #4A90D9; }
+  #standup-game .standup-dot.done { background: #4AD97A; }
+  #standup-game .standup-dot.wrong { background: #D94A4A; }
+  #standup-game .standup-footer { display: flex; justify-content: center; margin-top: 12px; }
+
+  /* TPS Reports game */
+  #tps-game { width: 440px; max-width: 90%; }
+  #tps-game .tps-grid { border-collapse: collapse; margin: 10px auto; }
+  #tps-game .tps-grid th { background: #3a4a5e; color: #8BA7C7; padding: 6px 10px; font-size: 11px; border: 1px solid #4A90D9; }
+  #tps-game .tps-grid td { border: 1px solid #4A90D9; padding: 0; }
+  #tps-game .tps-grid td.tps-header { background: #3a4a5e; color: #8BA7C7; font-size: 11px; padding: 6px 8px; text-align: center; font-weight: bold; }
+  #tps-game .tps-cell { width: 50px; height: 36px; background: #1a1a2e; color: #E8E4DE; border: none; text-align: center; font-family: 'Courier New', monospace; font-size: 14px; }
+  #tps-game .tps-cell:focus { outline: 2px solid #FFD700; background: #2C3E50; }
+  #tps-game .tps-cell.tps-fixed { background: transparent; color: #8BA7C7; }
+  #tps-game .tps-cell.tps-correct { background: #1A3A2A; color: #4AD97A; }
+  #tps-game .tps-cell.tps-wrong { background: #3A1A1A; color: #D94A4A; }
+  #tps-game .tps-footer { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+
+  /* Coffee game */
+  #coffee-game { width: 520px; max-width: 90%; }
+  #coffee-game .coffee-orders { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
+  #coffee-game .coffee-order { background: #1a1a2e; border: 1px solid #4A90D9; padding: 10px; width: 150px; text-align: center; }
+  #coffee-game .coffee-order.coffee-done { border-color: #4AD97A; opacity: 0.6; }
+  #coffee-game .coffee-order.coffee-wrong { border-color: #D94A4A; animation: shake 0.3s; }
+  #coffee-game .coffee-npc { font-size: 11px; color: #4A90D9; letter-spacing: 1px; margin-bottom: 6px; }
+  #coffee-game .coffee-spec { font-size: 10px; color: #8BA7C7; margin-bottom: 8px; line-height: 1.5; }
+  #coffee-game .coffee-toggles { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+  #coffee-game .coffee-toggle { background: #2C3E50; color: #8BA7C7; border: 1px solid #4A6080; padding: 4px; font-family: 'Courier New', monospace; font-size: 10px; cursor: pointer; }
+  #coffee-game .coffee-toggle:hover { border-color: #4A90D9; }
+  #coffee-game .coffee-serve { background: #1a1a2e; color: #4AD97A; border: 1px solid #4AD97A; padding: 4px 8px; font-family: 'Courier New', monospace; font-size: 10px; cursor: pointer; }
+  #coffee-game .coffee-serve:hover { background: #1A3A2A; }
+  #coffee-game .coffee-footer { display: flex; justify-content: center; margin-top: 12px; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+  /* Inbox game */
+  #inbox-game { width: 420px; max-width: 90%; }
+  #inbox-game .inbox-card-area { position: relative; height: 120px; margin: 12px 0; overflow: hidden; }
+  #inbox-game .inbox-card { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 340px; background: #1a1a2e; border: 1px solid #4A90D9; padding: 16px; transition: transform 0.25s, opacity 0.25s; }
+  #inbox-game .inbox-card.swipe-left { transform: translateX(-150%) rotate(-10deg); opacity: 0; }
+  #inbox-game .inbox-card.swipe-right { transform: translateX(50%) rotate(10deg); opacity: 0; }
+  #inbox-game .inbox-from { font-size: 10px; color: #4A90D9; letter-spacing: 1px; margin-bottom: 6px; }
+  #inbox-game .inbox-subject { font-size: 13px; color: #E8E4DE; line-height: 1.5; }
+  #inbox-game .inbox-labels { display: flex; justify-content: space-between; font-size: 11px; color: #8BA7C7; margin: 8px 0; }
+  #inbox-game .inbox-score { text-align: center; font-size: 12px; color: #8BA7C7; margin-top: 8px; }
+  #inbox-game .inbox-footer { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+  #inbox-game .inbox-btn-reply { background: #1a1a2e; color: #4AD97A; border: 1px solid #4AD97A; padding: 8px 20px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; }
+  #inbox-game .inbox-btn-archive { background: #1a1a2e; color: #D94A4A; border: 1px solid #D94A4A; padding: 8px 20px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; }
+
+  /* Server game */
+  #server-game { width: 480px; max-width: 90%; background: #0a0a0a; border-color: #33ff33; }
+  #server-game .minigame-title { color: #33ff33; }
+  #server-game .server-output { background: #000; color: #33ff33; font-size: 11px; padding: 10px; height: 200px; overflow-y: auto; line-height: 1.6; white-space: pre-wrap; margin: 8px 0; border: 1px solid #1a3a1a; }
+  #server-game .server-input-line { display: flex; align-items: center; gap: 4px; }
+  #server-game .server-prompt-char { color: #33ff33; font-size: 12px; }
+  #server-game .server-input { flex: 1; background: transparent; border: none; color: #33ff33; font-family: 'Courier New', monospace; font-size: 12px; outline: none; caret-color: #33ff33; }
+  #server-game .server-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
+  #server-game .minigame-btn { border-color: #33ff33; color: #33ff33; }
+  #server-game .minigame-btn:hover { border-color: #88ff88; color: #88ff88; }
 </style>
 </head>
 <body>
@@ -239,18 +408,23 @@
     <canvas id="gameCanvas" width="800" height="480"></canvas>
 
     <div id="title-screen">
-      <div class="company">Vantage Solutions</div>
+      <canvas id="title-stars-canvas" class="title-stars" width="800" height="480"></canvas>
+      <div class="company">Vantage Solutions Presents</div>
       <h1>Out of Office</h1>
       <div class="tagline">"Your return-to-office mandate just became a hostage situation."</div>
-      <div id="day-select" style="display:flex;gap:12px;margin-top:16px;">
-        <button class="btn" onclick="startGame(1)" id="btn-monday">Monday</button>
-        <button class="btn" onclick="startGame(2)" id="btn-tuesday" style="opacity:0.3;cursor:not-allowed;" disabled>Tuesday</button>
+      <div class="title-separator"></div>
+      <div style="font-size:9px;color:#6B8BAF;letter-spacing:2px;margin-bottom:8px;">SELECT EPISODE</div>
+      <div id="day-select" style="display:flex;gap:16px;">
+        <button class="btn" onclick="startGame(1)" id="btn-monday">&#9654; Monday</button>
+        <button class="btn" onclick="startGame(2)" id="btn-tuesday" style="opacity:0.3;cursor:not-allowed;" disabled>&#9654; Tuesday</button>
       </div>
-      <div id="day-subtitle" style="font-size:11px;color:#4A6080;margin-top:8px;"></div>
-      <div style="font-size:10px;color:#4A6080;margin-top:12px;line-height:1.8;">
-        WASD / Arrow Keys — Move &nbsp;&nbsp; E — Interact &nbsp;&nbsp; Click inventory — Use item<br>
-        Escape the building before 6 PM. Don't let your Engagement Score hit 100%.
+      <div id="day-subtitle" style="font-size:10px;color:#4A6080;margin-top:4px;"></div>
+      <div class="title-coin-insert">Press START to begin</div>
+      <div class="title-controls">
+        <span>WASD</span> Move &nbsp;&bull;&nbsp; <span>E</span> Interact &nbsp;&bull;&nbsp; <span>M</span> Music &nbsp;&bull;&nbsp; <span>ESC</span> Close<br>
+        Escape before 6 PM. Don't let your Engagement Score hit 100%.
       </div>
+      <div class="title-high-score">CORP BEST: 04:37:22 &mdash; FLOOR 7</div>
     </div>
 
     <div id="dialogue-box">
@@ -278,6 +452,12 @@
       <div id="printer-progress"></div>
       <button class="dialogue-btn" id="printer-cancel-btn" onclick="cancelPrinter()" style="margin-top:12px;">Give Up</button>
     </div>
+
+    <div id="standup-game" class="minigame-overlay"></div>
+    <div id="tps-game" class="minigame-overlay"></div>
+    <div id="coffee-game" class="minigame-overlay"></div>
+    <div id="inbox-game" class="minigame-overlay"></div>
+    <div id="server-game" class="minigame-overlay"></div>
 
     <div id="code-entry" style="display:none;">
       <div id="code-title">2FA VERIFICATION</div>
@@ -329,21 +509,24 @@
     <div id="room-name">Open Plan Area</div>
   </div>
 </div>
+<audio id="bg-music" loop preload="auto" src="assets/music.mp3"></audio>
+<div id="music-toggle" onclick="toggleMusic()" title="Toggle music (M)">🔇</div>
 
 <script>
 // ============================================================
-// PIXEL ART ASSET LOADER
+// PIXEL ART ASSET LOADER (Base64 Embedded)
 // ============================================================
 const ASSETS = {};
 let assetsLoaded = 0;
 let assetsTotal = 0;
 
+const _assetVersion = 2;
 function loadImg(key, src) {
   assetsTotal++;
   const img = new Image();
   img.onload = () => { assetsLoaded++; };
-  img.onerror = () => { assetsLoaded++; console.warn('Failed to load:', key, src); };
-  img.src = src;
+  img.onerror = () => { assetsLoaded++; console.warn('Failed to load:', key); };
+  img.src = src + '?v=' + _assetVersion;
   ASSETS[key] = img;
 }
 
@@ -389,6 +572,29 @@ function isAssetReady(key) {
 }
 
 // ============================================================
+// BACKGROUND MUSIC
+// ============================================================
+const bgMusic = document.getElementById('bg-music');
+let musicPlaying = false;
+bgMusic.volume = 0.3;
+
+function toggleMusic() {
+  const btn = document.getElementById('music-toggle');
+  if (musicPlaying) {
+    bgMusic.pause();
+    musicPlaying = false;
+    btn.textContent = '🔇';
+    btn.classList.remove('playing');
+  } else {
+    bgMusic.play().then(() => {
+      musicPlaying = true;
+      btn.textContent = '🔊';
+      btn.classList.add('playing');
+    }).catch(() => {});
+  }
+}
+
+// ============================================================
 // DAY SYSTEM
 // ============================================================
 let DAY = 1;
@@ -412,6 +618,70 @@ function initDaySelect() {
 }
 // Run on load
 setTimeout(initDaySelect, 0);
+
+// ============================================================
+// TITLE SCREEN ANIMATION
+// ============================================================
+(function initTitleAnim() {
+  const tc = document.getElementById('title-stars-canvas');
+  if (!tc) return;
+  const tctx = tc.getContext('2d');
+  // Floating office items: coffee cups, papers, clocks, keyboards
+  const particles = [];
+  const icons = ['☕','📄','⌨️','🖱️','📎','💼','🕐','📊','📁','💡'];
+  for (let i = 0; i < 30; i++) {
+    particles.push({
+      x: Math.random() * 800,
+      y: Math.random() * 480,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -Math.random() * 0.4 - 0.1,
+      icon: icons[Math.floor(Math.random() * icons.length)],
+      size: 8 + Math.random() * 6,
+      alpha: 0.1 + Math.random() * 0.2,
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: 0.005 + Math.random() * 0.01,
+    });
+  }
+  // Pixel grid dots
+  const dots = [];
+  for (let i = 0; i < 40; i++) {
+    dots.push({
+      x: Math.random() * 800,
+      y: Math.random() * 480,
+      r: 1 + Math.random() * 1.5,
+      alpha: 0.05 + Math.random() * 0.15,
+      pulse: Math.random() * Math.PI * 2,
+    });
+  }
+  let titleAnimId;
+  function animTitle() {
+    tctx.clearRect(0, 0, 800, 480);
+    // Dots (star-like)
+    for (const d of dots) {
+      d.pulse += 0.02;
+      const a = d.alpha * (0.5 + 0.5 * Math.sin(d.pulse));
+      tctx.fillStyle = `rgba(74,144,217,${a})`;
+      tctx.fillRect(Math.floor(d.x), Math.floor(d.y), Math.ceil(d.r), Math.ceil(d.r));
+    }
+    // Floating office icons
+    for (const p of particles) {
+      p.wobble += p.wobbleSpeed;
+      p.x += p.vx + Math.sin(p.wobble) * 0.2;
+      p.y += p.vy;
+      if (p.y < -20) { p.y = 490; p.x = Math.random() * 800; }
+      if (p.x < -20) p.x = 820;
+      if (p.x > 820) p.x = -20;
+      tctx.globalAlpha = p.alpha;
+      tctx.font = p.size + 'px serif';
+      tctx.fillText(p.icon, p.x, p.y);
+    }
+    tctx.globalAlpha = 1;
+    titleAnimId = requestAnimationFrame(animTitle);
+  }
+  animTitle();
+  // Expose stop function globally
+  window._stopTitleAnim = function() { cancelAnimationFrame(titleAnimId); };
+})();
 
 // ============================================================
 // CONSTANTS
@@ -1009,6 +1279,7 @@ function resetState() {
     gameOver: false,
     route: null,
     flags: {
+      miniGamePlays: { coffee:0, tps:0, inbox:0, printer:0, standup:0, server:0 },
       printerFixed: false, meetingEnded: false, jessSpoken: false,
       managerOfficeLocked: true, badgeScannerOff: false,
       wellnessVisited: false, derekDistracted: false, derekDistractTimer: 0,
@@ -1035,6 +1306,7 @@ function resetState() {
     dialogue: false,
     slackVisible: false,
     slackCountdown: isTuesday ? 40 + Math.random()*10 : 55 + Math.random()*10,
+    miniGameActive: false,
     printerActive: false,
     printerSeq: [], printerInput: [], printerPhase: 'watching',
     keys: {},
@@ -1143,9 +1415,10 @@ document.addEventListener('keydown', e => {
   S.keys[e.key] = true;
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
   if (e.key==='Escape') { closeDialogue(); hideSlack(); return; }
+  if (e.key==='m'||e.key==='M') { toggleMusic(); return; }
   // Dialogue keyboard navigation — handle before interact so E/Enter/Space picks dialogue options
   if (S.dialogue && handleDialogueKey(e)) return;
-  if ((e.key==='e'||e.key==='E') && S.running && !S.gameOver) tryInteract();
+  if ((e.key==='e'||e.key==='E') && S.running && !S.gameOver && !S.miniGameActive) tryInteract();
 });
 document.addEventListener('keyup', e => { S.keys[e.key] = false; });
 
@@ -1156,9 +1429,15 @@ let lastTime = 0, npcTimer = 0;
 
 function startGame(day) {
   DAY = day || 1;
+  if (window._stopTitleAnim) window._stopTitleAnim();
   document.getElementById('title-screen').style.display = 'none';
   document.getElementById('allhands-bar').style.display = 'none';
   document.getElementById('code-entry').style.display = 'none';
+  document.getElementById('printer-game').style.display = 'none';
+  ['standup-game','tps-game','coffee-game','inbox-game','server-game'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  mgClearAll();
   resetState();
   initRooms();
   S.running = true;
@@ -1184,7 +1463,7 @@ function gameLoop(ts) {
   lastTime = ts;
   S.animFrame++;
 
-  if (!S.dialogue && !S.printerActive && !S.slackVisible) handleMovement(dt);
+  if (!S.dialogue && !S.printerActive && !S.slackVisible && !S.miniGameActive) handleMovement(dt);
 
   npcTimer += dt;
   if (npcTimer >= 700) { npcTimer = 0; moveNPCs(); checkDetection(); }
@@ -1440,7 +1719,7 @@ function doTransition(exit) {
 // INTERACTION
 // ============================================================
 function tryInteract() {
-  if (S.dialogue || S.printerActive || S.slackVisible) return;
+  if (S.dialogue || S.printerActive || S.slackVisible || S.miniGameActive) return;
   if (S.interactCd > 0) return;
   S.interactCd = 400;
   setTimeout(()=>{S.interactCd=0;}, 400);
@@ -1455,6 +1734,7 @@ function tryInteract() {
   // Check adjacent tiles
   const adj = getAdjTiles();
   for (const {x,y,t} of adj) {
+    if (t===T.CHAIR && S.room==='conference') { interactStandupChair(); return; }
     if (t===T.PLAYER_DESK) { interactPlayerDesk(); return; }
     if (t===T.DESK && S.room==='managerOffice') { interactManagerDesk(); return; }
     if (t===T.DESK && S.room==='openPlan') {
@@ -1514,6 +1794,8 @@ function interactPlayerDesk() {
         addSuspicion(-15); advanceTime(15); closeDialogue();
         toast('You type furiously about nothing. Suspicion drops.');
       }},
+      {label:'[Look busy] TPS Reports', cb:()=>{ closeDialogue(); startTPSGame(); }},
+      {label:'Check Email', cb:()=>{ closeDialogue(); startInboxGame(); }},
       {label:'Check drawer', cb:()=>{
         closeDialogue();
         if (!hasItem('cakeMemo')) { addToInventory('cakeMemo'); toast('Found: Cake Memo from last week\'s all-hands.'); }
@@ -1675,6 +1957,7 @@ function interactKeurig() {
   showDialogue('Keurig', "You could make a coffee. It will taste exactly like nothing.",
     [
       {label:'Make coffee (+5 min)', cb:()=>{ advanceTime(5); closeDialogue(); toast('Warm. Technically coffee.'); }},
+      {label:'Coffee Run (mini-game)', cb:()=>{ closeDialogue(); startCoffeeGame(); }},
       {label:'No time', cb:()=>closeDialogue()}
     ]);
 }
@@ -2073,6 +2356,967 @@ function cancelPrinter() {
   document.getElementById('printer-game').style.display = 'none';
   S.printerActive = false;
   addSuspicion(5);
+}
+
+// ============================================================
+// MINI-GAME HELPER
+// ============================================================
+function miniGameReward(base, gameKey) {
+  const plays = S.flags.miniGamePlays[gameKey] || 0;
+  S.flags.miniGamePlays[gameKey] = plays + 1;
+  return Math.round(base * Math.max(0.2, 1 - 0.25 * plays));
+}
+
+// Active mini-game timers/intervals for cleanup
+let _mgTimers = [];
+function mgSetTimeout(fn, ms) { const t = setTimeout(fn, ms); _mgTimers.push({type:'t',id:t}); return t; }
+function mgSetInterval(fn, ms) { const t = setInterval(fn, ms); _mgTimers.push({type:'i',id:t}); return t; }
+function mgClearAll() { for (const t of _mgTimers) { if(t.type==='t') clearTimeout(t.id); else clearInterval(t.id); } _mgTimers = []; }
+function mgEnd() { mgClearAll(); S.miniGameActive = false; }
+
+// ============================================================
+// MINI-GAME 1: STANDUP (Conference Room)
+// ============================================================
+const STANDUP_QUESTIONS_MONDAY = [
+  { q: "What did you accomplish yesterday?", answers: [
+    { text: "Aligned cross-functional deliverables with Q3 OKRs", correct: true },
+    { text: "Tried to escape this building", correct: false },
+    { text: "Stuff", correct: false }
+  ]},
+  { q: "Any blockers?", answers: [
+    { text: "Just bandwidth constraints on the synergy pipeline", correct: true },
+    { text: "Yes, the locked elevator", correct: false },
+    { text: "Not really", correct: false }
+  ]},
+  { q: "How do you feel about our direction?", answers: [
+    { text: "Really energized by our north-star metrics", correct: true },
+    { text: "I don't even know what we do here", correct: false },
+    { text: "Fine", correct: false }
+  ]},
+  { q: "What's your focus for today?", answers: [
+    { text: "Driving stakeholder alignment on the roadmap", correct: true },
+    { text: "Finding the nearest exit", correct: false },
+    { text: "Meetings, I guess", correct: false }
+  ]},
+  { q: "How was the team offsite?", answers: [
+    { text: "Transformative. Real culture-building moments.", correct: true },
+    { text: "A complete waste of everyone's time", correct: false },
+    { text: "I didn't go", correct: false }
+  ]},
+  { q: "Thoughts on the new open floor plan?", answers: [
+    { text: "Love the transparency. It really fosters collaboration.", correct: true },
+    { text: "I can hear six conversations at once and none of them matter", correct: false },
+    { text: "It's... a floor plan", correct: false }
+  ]},
+];
+
+const STANDUP_QUESTIONS_TUESDAY = [
+  ...STANDUP_QUESTIONS_MONDAY,
+  { q: "How are you leveraging our new collaboration tools?", answers: [
+    { text: "They've been a force multiplier for async alignment", correct: true },
+    { text: "I closed every notification because my head was splitting", correct: false },
+    { text: "What tools?", correct: false }
+  ]},
+  { q: "What value are you adding to the team this sprint?", answers: [
+    { text: "Bridging the gap between execution and vision", correct: true },
+    { text: "I've been here two days and already lost the will to live", correct: false },
+    { text: "Value?", correct: false }
+  ]},
+  { q: "How do you rate your engagement this week?", answers: [
+    { text: "Off the charts. Really feeling the in-office energy.", correct: true },
+    { text: "On a scale of 1 to 10, it's a cry for help", correct: false },
+    { text: "Average", correct: false }
+  ]},
+  { q: "What's one thing we could improve?", answers: [
+    { text: "More touchpoints. I thrive on face-to-face synergies.", correct: true },
+    { text: "Letting people work from home like functional adults", correct: false },
+    { text: "Nothing comes to mind", correct: false }
+  ]},
+];
+
+let _standupKeyHandler = null;
+
+function interactStandupChair() {
+  showDialogue('Conference Room',
+    "A daily standup is about to begin. The chairs beckon.",
+    [
+      { label: 'Join the standup', cb: () => { closeDialogue(); startStandupGame(); } },
+      { label: 'Walk away', cb: () => closeDialogue() }
+    ]);
+}
+
+function startStandupGame() {
+  S.miniGameActive = true;
+  const pool = DAY === 2 ? STANDUP_QUESTIONS_TUESDAY : STANDUP_QUESTIONS_MONDAY;
+  const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+  const questions = shuffled.slice(0, 3);
+  let qIdx = 0, correctCount = 0;
+
+  const el = document.getElementById('standup-game');
+  el.style.display = 'block';
+
+  function renderQuestion() {
+    const q = questions[qIdx];
+    // Shuffle answers
+    const ansOrder = q.answers.slice().sort(() => Math.random() - 0.5);
+    el.innerHTML = `
+      <div class="minigame-title">DAILY STANDUP</div>
+      <div class="standup-progress">${[0,1,2].map(i =>
+        `<div class="standup-dot${i < qIdx ? (questions[i]._wasCorrect ? ' done' : ' wrong') : ''}"></div>`
+      ).join('')}</div>
+      <div class="standup-prompt">"${q.q}"</div>
+      <div class="standup-answers">
+        ${ansOrder.map((a, i) => `<button class="minigame-btn standup-ans-btn" data-idx="${i}">[${i+1}] ${a.text}</button>`).join('')}
+      </div>
+      <div class="standup-footer"><button class="minigame-btn standup-walkout">Walk Out</button></div>
+    `;
+    const btns = el.querySelectorAll('.standup-ans-btn');
+    btns.forEach((btn, i) => {
+      btn.onclick = () => handleAnswer(ansOrder[i].correct);
+    });
+    el.querySelector('.standup-walkout').onclick = endStandup;
+
+    // Keyboard handler
+    if (_standupKeyHandler) document.removeEventListener('keydown', _standupKeyHandler);
+    _standupKeyHandler = (e) => {
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= ansOrder.length) {
+        handleAnswer(ansOrder[num - 1].correct);
+      }
+      if (e.key === 'Escape') endStandup();
+    };
+    document.addEventListener('keydown', _standupKeyHandler);
+  }
+
+  function handleAnswer(isCorrect) {
+    if (_standupKeyHandler) { document.removeEventListener('keydown', _standupKeyHandler); _standupKeyHandler = null; }
+    questions[qIdx]._wasCorrect = isCorrect;
+    if (isCorrect) correctCount++;
+    qIdx++;
+    if (qIdx >= 3) {
+      finishStandup();
+    } else {
+      renderQuestion();
+    }
+  }
+
+  function finishStandup() {
+    if (_standupKeyHandler) { document.removeEventListener('keydown', _standupKeyHandler); _standupKeyHandler = null; }
+    let msg = '';
+    if (correctCount === 3) {
+      const reward = miniGameReward(15, 'standup');
+      addSuspicion(-reward);
+      msg = `Perfect corporate BS! -${reward} suspicion.`;
+    } else if (correctCount === 2) {
+      addSuspicion(-5);
+      msg = 'Decent performance. -5 suspicion.';
+    } else {
+      addSuspicion(5);
+      msg = 'That was... honest. +5 suspicion.';
+    }
+    advanceTime(10);
+    el.innerHTML = `
+      <div class="minigame-title">STANDUP COMPLETE</div>
+      <div class="standup-progress">${[0,1,2].map(i =>
+        `<div class="standup-dot${questions[i]._wasCorrect ? ' done' : ' wrong'}"></div>`
+      ).join('')}</div>
+      <div class="standup-prompt">${correctCount}/3 correct. ${msg}</div>
+      <div class="standup-footer"><button class="minigame-btn standup-done-btn">Done</button></div>
+    `;
+    el.querySelector('.standup-done-btn').onclick = endStandup;
+    _standupKeyHandler = (e) => { if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') endStandup(); };
+    document.addEventListener('keydown', _standupKeyHandler);
+  }
+
+  function endStandup() {
+    if (_standupKeyHandler) { document.removeEventListener('keydown', _standupKeyHandler); _standupKeyHandler = null; }
+    el.style.display = 'none';
+    mgEnd();
+  }
+
+  renderQuestion();
+}
+
+// ============================================================
+// MINI-GAME 2: TPS REPORTS (Player Desk)
+// ============================================================
+let _tpsKeyHandler = null;
+
+function startTPSGame() {
+  S.miniGameActive = true;
+  const size = DAY === 2 ? 4 : 3;
+  const grid = [];
+  const blanks = [];
+  // Generate rows with arithmetic sequences
+  for (let r = 0; r < size; r++) {
+    const start = Math.floor(Math.random() * 20) + 1;
+    const step = Math.floor(Math.random() * 8) + 2;
+    const row = [];
+    for (let c = 0; c < size; c++) {
+      row.push(start + step * c);
+    }
+    grid.push(row);
+  }
+  // Blank ~40% of cells
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (Math.random() < 0.4) {
+        blanks.push({ r, c, val: grid[r][c] });
+        grid[r][c] = null;
+      }
+    }
+  }
+  // Ensure at least one blank per row
+  for (let r = 0; r < size; r++) {
+    if (!blanks.find(b => b.r === r)) {
+      const c = Math.floor(Math.random() * size);
+      blanks.push({ r, c, val: grid[r][c] });
+      grid[r][c] = null;
+    }
+  }
+
+  const el = document.getElementById('tps-game');
+  el.style.display = 'block';
+  const colHeaders = 'ABCDEFGH'.split('');
+  const timeLimit = 45000;
+  const startTime = Date.now();
+
+  function renderGrid() {
+    let html = `<div class="minigame-title">Q3 SYNERGY METRICS</div>`;
+    html += `<div class="minigame-timer"><div class="minigame-timer-fill" id="tps-timer-fill" style="width:100%"></div></div>`;
+    html += `<table class="tps-grid"><tr><th></th>`;
+    for (let c = 0; c < size; c++) html += `<th>${colHeaders[c]}</th>`;
+    html += `</tr>`;
+    for (let r = 0; r < size; r++) {
+      html += `<tr><td class="tps-header">${r + 1}</td>`;
+      for (let c = 0; c < size; c++) {
+        const isBlank = grid[r][c] === null;
+        if (isBlank) {
+          html += `<td><input class="tps-cell" data-r="${r}" data-c="${c}" type="text" maxlength="4" autocomplete="off"></td>`;
+        } else {
+          html += `<td><input class="tps-cell tps-fixed" value="${grid[r][c]}" readonly tabindex="-1"></td>`;
+        }
+      }
+      html += `</tr>`;
+    }
+    html += `</table>`;
+    html += `<div class="tps-footer">
+      <button class="minigame-btn" id="tps-submit">Submit</button>
+      <button class="minigame-btn" id="tps-giveup">Give Up</button>
+    </div>`;
+    el.innerHTML = html;
+
+    // Arrow key navigation between inputs
+    const inputs = el.querySelectorAll('.tps-cell:not(.tps-fixed)');
+    inputs.forEach((inp, idx) => {
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'Tab') {
+          e.preventDefault();
+          const next = inputs[(idx + 1) % inputs.length];
+          if (next) next.focus();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const prev = inputs[(idx - 1 + inputs.length) % inputs.length];
+          if (prev) prev.focus();
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = inputs[Math.min(idx + 1, inputs.length - 1)];
+          if (next) next.focus();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const prev = inputs[Math.max(idx - 1, 0)];
+          if (prev) prev.focus();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          submitTPS();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          endTPS(true);
+        }
+      });
+    });
+    if (inputs.length > 0) mgSetTimeout(() => inputs[0].focus(), 50);
+
+    el.querySelector('#tps-submit').onclick = submitTPS;
+    el.querySelector('#tps-giveup').onclick = () => endTPS(true);
+  }
+
+  // Timer
+  const timerInt = mgSetInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const pct = Math.max(0, 100 - (elapsed / timeLimit) * 100);
+    const fill = document.getElementById('tps-timer-fill');
+    if (fill) fill.style.width = pct + '%';
+    if (elapsed >= timeLimit) {
+      clearInterval(timerInt);
+      addSuspicion(5);
+      advanceTime(10);
+      toast('Time\'s up! You stared at the spreadsheet too long. +5 suspicion.');
+      endTPS(false);
+    }
+  }, 100);
+
+  function submitTPS() {
+    let allCorrect = true;
+    let anyFilled = false;
+    for (const b of blanks) {
+      const inp = el.querySelector(`.tps-cell[data-r="${b.r}"][data-c="${b.c}"]`);
+      if (!inp) continue;
+      const val = parseInt(inp.value);
+      anyFilled = true;
+      if (val === b.val) {
+        inp.classList.add('tps-correct');
+      } else {
+        inp.classList.add('tps-wrong');
+        allCorrect = false;
+      }
+    }
+    if (allCorrect && anyFilled) {
+      const reward = miniGameReward(15, 'tps');
+      addSuspicion(-reward);
+      advanceTime(10);
+      toast(`All correct! -${reward} suspicion. You are a spreadsheet savant.`);
+    } else {
+      addSuspicion(-5);
+      advanceTime(10);
+      toast('Some wrong answers, but you looked busy. -5 suspicion.');
+    }
+    mgSetTimeout(() => endTPS(false), 1200);
+  }
+
+  function endTPS(isGiveUp) {
+    if (isGiveUp) { addSuspicion(5); advanceTime(10); toast('You gave up on the TPS reports. +5 suspicion.'); }
+    el.style.display = 'none';
+    mgEnd();
+  }
+
+  renderGrid();
+}
+
+// ============================================================
+// MINI-GAME 3: COFFEE RUN (Kitchen)
+// ============================================================
+const COFFEE_TYPES = ['Black', 'Latte', 'Mocha'];
+const COFFEE_NPCS = ['Derek', 'Karen', 'Chad', 'Bryce', 'Linda', 'Jess', 'Dave', 'Priya'];
+
+function startCoffeeGame() {
+  S.miniGameActive = true;
+  const isTuesday = DAY === 2;
+  const numOrders = 3;
+  const orders = [];
+  const usedNpcs = [];
+  for (let i = 0; i < numOrders; i++) {
+    let npc;
+    do { npc = COFFEE_NPCS[Math.floor(Math.random() * COFFEE_NPCS.length)]; } while (usedNpcs.includes(npc));
+    usedNpcs.push(npc);
+    const order = {
+      npc,
+      type: COFFEE_TYPES[Math.floor(Math.random() * 3)],
+      sugar: Math.floor(Math.random() * 3),
+      cream: isTuesday ? Math.floor(Math.random() * 4) : 0,
+      done: false,
+      selection: { type: 0, sugar: 0, cream: 0 }
+    };
+    orders.push(order);
+  }
+
+  const el = document.getElementById('coffee-game');
+  el.style.display = 'block';
+  const timeLimit = 30000;
+  const startTime = Date.now();
+  let correctCount = 0;
+
+  function render() {
+    let html = `<div class="minigame-title">COFFEE RUN</div>`;
+    html += `<div class="minigame-timer"><div class="minigame-timer-fill" id="coffee-timer-fill" style="width:100%"></div></div>`;
+    html += `<div class="coffee-orders">`;
+    for (let i = 0; i < orders.length; i++) {
+      const o = orders[i];
+      const spec = isTuesday
+        ? `${o.type}, ${o.cream} cream, ${o.sugar} sugar`
+        : `${o.type}, ${o.sugar} sugar`;
+      html += `<div class="coffee-order${o.done ? ' coffee-done' : ''}" id="coffee-order-${i}">
+        <div class="coffee-npc">${o.npc}</div>
+        <div class="coffee-spec">${spec}</div>`;
+      if (!o.done) {
+        html += `<div class="coffee-toggles">
+          <button class="coffee-toggle" id="ct-type-${i}">Type: ${COFFEE_TYPES[o.selection.type]}</button>
+          ${isTuesday ? `<button class="coffee-toggle" id="ct-cream-${i}">Cream: ${o.selection.cream}</button>` : ''}
+          <button class="coffee-toggle" id="ct-sugar-${i}">Sugar: ${o.selection.sugar}</button>
+        </div>
+        <button class="coffee-serve" id="cs-${i}">Serve</button>`;
+      } else {
+        html += `<div style="color:#4AD97A;font-size:11px;margin-top:6px;">DONE</div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+    html += `<div class="coffee-footer"><button class="minigame-btn" id="coffee-quit">Walk Away</button></div>`;
+    el.innerHTML = html;
+
+    // Attach handlers
+    for (let i = 0; i < orders.length; i++) {
+      if (orders[i].done) continue;
+      const o = orders[i];
+      const typeBtn = document.getElementById(`ct-type-${i}`);
+      if (typeBtn) typeBtn.onclick = () => {
+        o.selection.type = (o.selection.type + 1) % 3;
+        typeBtn.textContent = `Type: ${COFFEE_TYPES[o.selection.type]}`;
+      };
+      if (isTuesday) {
+        const creamBtn = document.getElementById(`ct-cream-${i}`);
+        if (creamBtn) creamBtn.onclick = () => {
+          o.selection.cream = (o.selection.cream + 1) % 4;
+          creamBtn.textContent = `Cream: ${o.selection.cream}`;
+        };
+      }
+      const sugarBtn = document.getElementById(`ct-sugar-${i}`);
+      if (sugarBtn) sugarBtn.onclick = () => {
+        o.selection.sugar = (o.selection.sugar + 1) % 3;
+        sugarBtn.textContent = `Sugar: ${o.selection.sugar}`;
+      };
+      const serveBtn = document.getElementById(`cs-${i}`);
+      if (serveBtn) serveBtn.onclick = () => serveCoffee(i);
+    }
+    el.querySelector('#coffee-quit').onclick = () => endCoffee(true);
+  }
+
+  function serveCoffee(idx) {
+    const o = orders[idx];
+    const sel = o.selection;
+    const typeMatch = COFFEE_TYPES[sel.type] === o.type;
+    const sugarMatch = sel.sugar === o.sugar;
+    const creamMatch = isTuesday ? sel.cream === o.cream : true;
+    const orderEl = document.getElementById(`coffee-order-${idx}`);
+    if (typeMatch && sugarMatch && creamMatch) {
+      o.done = true;
+      correctCount++;
+      if (orderEl) { orderEl.classList.add('coffee-done'); }
+      render();
+      if (orders.every(o => o.done)) finishCoffee();
+    } else {
+      // Wrong: flash red, 5s penalty
+      if (orderEl) {
+        orderEl.classList.add('coffee-wrong');
+        mgSetTimeout(() => { if (orderEl) orderEl.classList.remove('coffee-wrong'); }, 300);
+      }
+      startTime_offset = (startTime_offset || 0) + 5000;
+    }
+  }
+
+  let startTime_offset = 0;
+  const timerInt = mgSetInterval(() => {
+    const elapsed = Date.now() - startTime + (startTime_offset || 0);
+    const pct = Math.max(0, 100 - (elapsed / timeLimit) * 100);
+    const fill = document.getElementById('coffee-timer-fill');
+    if (fill) fill.style.width = pct + '%';
+    if (elapsed >= timeLimit) {
+      finishCoffee();
+    }
+  }, 100);
+
+  function finishCoffee() {
+    clearInterval(timerInt);
+    if (correctCount === 3) {
+      const reward = miniGameReward(20, 'coffee');
+      addSuspicion(-reward);
+      toast(`All orders correct! -${reward} suspicion. Derek and Karen are sipping happily.`);
+      // Freeze Derek and Karen for ~30s
+      S.npcs.derek.frozen = Math.ceil(30000 / 700);
+      S.npcs.karen.frozen = Math.ceil(30000 / 700);
+    } else if (correctCount >= 1) {
+      addSuspicion(-10);
+      toast(`${correctCount}/3 orders correct. -10 suspicion.`);
+    } else {
+      addSuspicion(5);
+      toast('No correct orders. The office judges you silently. +5 suspicion.');
+    }
+    advanceTime(10);
+    mgSetTimeout(() => endCoffee(false), 800);
+  }
+
+  function endCoffee(isQuit) {
+    if (isQuit) { advanceTime(10); }
+    el.style.display = 'none';
+    mgEnd();
+  }
+
+  render();
+}
+
+// ============================================================
+// MINI-GAME 4: INBOX ZERO (Player Desk)
+// ============================================================
+const IMPORTANT_EMAILS = [
+  { from: 'Derek (Manager)', subject: 'Q3 Budget Review - ACTION REQUIRED' },
+  { from: 'Derek (Manager)', subject: 'Your 1:1 moved to 3pm' },
+  { from: 'HR', subject: 'Building access card renewal' },
+  { from: 'IT Department', subject: 'Password reset - expires today' },
+  { from: 'Finance', subject: 'Expense report approval needed' },
+  { from: 'Derek (Manager)', subject: 'Project deadline update - URGENT' },
+  { from: 'HR', subject: 'Benefits enrollment closes Friday' },
+  { from: 'IT Department', subject: 'VPN certificate expiring today' },
+  { from: 'Legal', subject: 'NDA renewal - signature required' },
+  { from: 'Facilities', subject: 'Fire drill scheduled Thursday 2pm' },
+  { from: 'Finance', subject: 'Q3 actuals due by EOD' },
+  { from: 'Derek (Manager)', subject: 'Performance review self-assessment due' },
+];
+
+const JUNK_EMAILS = [
+  { from: 'All-Staff', subject: 'RE: RE: RE: RE: Lunch plans' },
+  { from: 'Karen (HR)', subject: 'MANDATORY: New policy on policy updates' },
+  { from: 'Compliance', subject: 'ACTION REQUIRED: Update your emergency contact\'s emergency contact' },
+  { from: 'Culture Team', subject: 'Congrats! You\'ve been selected for a synergy workshop' },
+  { from: 'Bryce', subject: 'FW: FW: FW: FW: Inspirational quote of the day!!!' },
+  { from: 'Office Bot', subject: 'Your desk plant has been watered (automated reminder)' },
+  { from: 'Wellness Committee', subject: 'Mandatory fun: Trust falls at 4pm' },
+  { from: 'All-Staff', subject: 'Lost: Someone\'s kombucha. Please claim from fridge.' },
+  { from: 'Culture Team', subject: 'SURVEY: Rate your happiness (mandatory)' },
+  { from: 'Bryce', subject: 'Who wants to start a lunchtime book club?? (REQUIRED reading)' },
+  { from: 'Facilities', subject: 'RE: RE: RE: Whose mug is this in the sink' },
+  { from: 'All-Staff', subject: 'Reminder: Please update your Slack status to show you are here' },
+  { from: 'Culture Team', subject: 'New seating chart — you\'ve been optimized!' },
+  { from: 'Office Bot', subject: 'Your bathroom break exceeded 7 minutes (FYI)' },
+  { from: 'Wellness Committee', subject: 'Mandatory meditation: Breathe for the company' },
+  { from: 'Bryce', subject: 'INCREDIBLE article about open floor plans and PRODUCTIVITY' },
+];
+
+let _inboxKeyHandler = null;
+
+function startInboxGame() {
+  S.miniGameActive = true;
+  const totalCards = 20;
+  // Build deck: ~10 important, ~10 junk
+  const imp = IMPORTANT_EMAILS.slice().sort(() => Math.random() - 0.5).slice(0, 10);
+  const jnk = JUNK_EMAILS.slice().sort(() => Math.random() - 0.5).slice(0, 10);
+  const deck = [];
+  for (let i = 0; i < 10; i++) {
+    deck.push({ ...imp[i], important: true });
+    deck.push({ ...jnk[i], important: false });
+  }
+  // Shuffle
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+
+  const el = document.getElementById('inbox-game');
+  el.style.display = 'block';
+  let cardIdx = 0, score = 0;
+  const timeLimit = 30000;
+  const startTime = Date.now();
+  let finished = false;
+
+  function renderCard() {
+    if (cardIdx >= totalCards || finished) { finishInbox(); return; }
+    const email = deck[cardIdx];
+    el.innerHTML = `
+      <div class="minigame-title">INBOX ZERO</div>
+      <div class="minigame-timer"><div class="minigame-timer-fill" id="inbox-timer-fill" style="width:100%"></div></div>
+      <div class="inbox-labels"><span>REPLY [A/Left]</span><span>${cardIdx + 1}/${totalCards}</span><span>[D/Right] ARCHIVE</span></div>
+      <div class="inbox-card-area">
+        <div class="inbox-card" id="inbox-current-card">
+          <div class="inbox-from">${email.from}</div>
+          <div class="inbox-subject">${email.subject}</div>
+        </div>
+      </div>
+      <div class="inbox-score">Score: ${score}/${cardIdx}</div>
+      <div class="inbox-footer">
+        <button class="inbox-btn-reply" id="inbox-reply-btn">Reply (Important)</button>
+        <button class="inbox-btn-archive" id="inbox-archive-btn">Archive (Junk)</button>
+      </div>
+    `;
+    el.querySelector('#inbox-reply-btn').onclick = () => swipe('reply');
+    el.querySelector('#inbox-archive-btn').onclick = () => swipe('archive');
+  }
+
+  function swipe(action) {
+    if (finished || cardIdx >= totalCards) return;
+    const email = deck[cardIdx];
+    const card = document.getElementById('inbox-current-card');
+    const correct = (action === 'reply' && email.important) || (action === 'archive' && !email.important);
+    if (correct) score++;
+    if (card) {
+      card.classList.add(action === 'reply' ? 'swipe-left' : 'swipe-right');
+    }
+    cardIdx++;
+    mgSetTimeout(renderCard, 280);
+  }
+
+  // Keyboard handler
+  _inboxKeyHandler = (e) => {
+    if (finished) return;
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); swipe('reply'); }
+    else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); swipe('archive'); }
+    else if (e.key === 'Escape') { finishInbox(); }
+  };
+  document.addEventListener('keydown', _inboxKeyHandler);
+
+  // Timer
+  const timerInt = mgSetInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const pct = Math.max(0, 100 - (elapsed / timeLimit) * 100);
+    const fill = document.getElementById('inbox-timer-fill');
+    if (fill) fill.style.width = pct + '%';
+    if (elapsed >= timeLimit && !finished) {
+      finishInbox();
+    }
+  }, 100);
+
+  function finishInbox() {
+    if (finished) return;
+    finished = true;
+    clearInterval(timerInt);
+    if (_inboxKeyHandler) { document.removeEventListener('keydown', _inboxKeyHandler); _inboxKeyHandler = null; }
+    let msg = '';
+    if (score >= 18) {
+      const reward = miniGameReward(15, 'inbox');
+      addSuspicion(-reward);
+      msg = `Inbox master! ${score}/${cardIdx} correct. -${reward} suspicion.`;
+      toast(msg + ' You found a useful email: the elevator maintenance schedule shows a gap at 4pm.');
+    } else if (score >= 12) {
+      addSuspicion(-10);
+      msg = `${score}/${cardIdx} correct. -10 suspicion.`;
+      toast(msg);
+    } else {
+      addSuspicion(5);
+      msg = `Only ${score}/${cardIdx} correct. You replied to spam and archived real work. +5 suspicion.`;
+      toast(msg);
+    }
+    advanceTime(10);
+    el.innerHTML = `
+      <div class="minigame-title">INBOX RESULTS</div>
+      <div class="inbox-score" style="font-size:16px;margin:20px 0;">${score}/${cardIdx} correct</div>
+      <div class="standup-prompt">${msg}</div>
+      <div class="inbox-footer"><button class="minigame-btn" id="inbox-done-btn">Done</button></div>
+    `;
+    el.querySelector('#inbox-done-btn').onclick = endInbox;
+    _inboxKeyHandler = (e) => { if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') endInbox(); };
+    document.addEventListener('keydown', _inboxKeyHandler);
+  }
+
+  function endInbox() {
+    if (_inboxKeyHandler) { document.removeEventListener('keydown', _inboxKeyHandler); _inboxKeyHandler = null; }
+    el.style.display = 'none';
+    mgEnd();
+  }
+
+  renderCard();
+}
+
+// ============================================================
+// MINI-GAME 5: PRINTER FIX (replaces startPrinterGame internals)
+// ============================================================
+// We replace the startPrinterGame function with a new paper-jam removal game
+// but keep the existing completePrinter and cancelPrinter for compatibility.
+
+// Save original and override
+const _origStartPrinterGame = startPrinterGame;
+startPrinterGame = function() {
+  S.printerActive = true;
+  S.miniGameActive = true;
+
+  const numPapers = DAY === 2 ? 6 : 4;
+  // Papers are layered: paper i blocks paper i+1 (the topmost unblocked = lowest index not yet removed)
+  // We create papers with random positions and colors
+  const colors = ['#D94A4A', '#4A90D9', '#4AD97A', '#D9A04A', '#9B59B6', '#E74C3C'];
+  const papers = [];
+  for (let i = 0; i < numPapers; i++) {
+    papers.push({
+      id: i,
+      removed: false,
+      color: colors[i % colors.length],
+      x: 40 + (i % 3) * 30 + Math.floor(Math.random() * 20),
+      y: 20 + i * 22,
+      w: 120 + Math.floor(Math.random() * 40),
+      h: 28,
+      label: `P${i + 1}`
+    });
+  }
+
+  let mistakes = 0;
+  let removedCount = 0;
+
+  const el = document.getElementById('printer-game');
+  el.style.display = 'block';
+
+  function getTopmost() {
+    // Topmost unblocked = first paper (lowest index) not yet removed
+    for (let i = papers.length - 1; i >= 0; i--) {
+      if (!papers[i].removed) return i;
+    }
+    return -1;
+  }
+
+  function renderPrinter() {
+    let html = `<div id="printer-title" style="font-size:14px;color:#4A90D9;margin-bottom:12px;letter-spacing:2px;">PAPER JAM DETECTED</div>`;
+    html += `<div style="font-size:11px;color:#8BA7C7;margin-bottom:10px;">Remove the papers from top to bottom</div>`;
+    html += `<div style="position:relative;width:280px;height:${numPapers * 24 + 60}px;background:#1a1a2e;border:2px solid #4A90D9;margin:0 auto;overflow:hidden;">`;
+    // Draw printer body hints
+    html += `<div style="position:absolute;top:0;left:0;right:0;height:12px;background:#909090;"></div>`;
+    html += `<div style="position:absolute;bottom:0;left:0;right:0;height:12px;background:#909090;"></div>`;
+    // Draw papers (bottom to top layering)
+    for (let i = 0; i < papers.length; i++) {
+      const p = papers[i];
+      if (p.removed) continue;
+      const topmost = getTopmost();
+      const isTop = (i === topmost);
+      html += `<div class="printer-paper" data-idx="${i}" style="
+        position:absolute;
+        left:${p.x}px; top:${p.y}px;
+        width:${p.w}px; height:${p.h}px;
+        background:${p.color};
+        border:2px solid ${isTop ? '#FFD700' : '#555'};
+        cursor:${isTop ? 'pointer' : 'not-allowed'};
+        display:flex; align-items:center; justify-content:center;
+        font-size:11px; color:#fff; font-weight:bold;
+        z-index:${10 + i};
+        transition: transform 0.3s, opacity 0.3s;
+        ${isTop ? 'box-shadow: 0 0 8px rgba(255,215,0,0.5);' : 'opacity:0.8;'}
+      ">${p.label}${isTop ? ' (pull)' : ''}</div>`;
+    }
+    html += `</div>`;
+    html += `<div id="printer-progress" style="display:flex;gap:4px;justify-content:center;margin-top:8px;">`;
+    for (let i = 0; i < numPapers; i++) {
+      html += `<div class="prog-dot${papers[i].removed ? ' done' : ''}"></div>`;
+    }
+    html += `</div>`;
+    html += `<div id="printer-prompt" style="font-size:12px;color:#8BA7C7;margin-top:8px;">Mistakes: ${mistakes}</div>`;
+    html += `<button class="dialogue-btn" onclick="cancelPrinterNew()" style="margin-top:12px;">Give Up</button>`;
+    el.innerHTML = html;
+
+    // Attach click handlers
+    el.querySelectorAll('.printer-paper').forEach(paperEl => {
+      paperEl.onclick = () => {
+        const idx = parseInt(paperEl.dataset.idx);
+        const topmost = getTopmost();
+        if (idx === topmost) {
+          // Correct! Slide out
+          paperEl.style.transform = 'translateX(300px)';
+          paperEl.style.opacity = '0';
+          papers[idx].removed = true;
+          removedCount++;
+          mgSetTimeout(() => {
+            if (removedCount >= numPapers) {
+              completePrinterNew(mistakes);
+            } else {
+              renderPrinter();
+            }
+          }, 350);
+        } else {
+          // Wrong! Shake
+          paperEl.style.animation = 'shake 0.3s';
+          mistakes++;
+          mgSetTimeout(() => renderPrinter(), 350);
+        }
+      };
+    });
+  }
+
+  renderPrinter();
+};
+
+function cancelPrinterNew() {
+  if (printerShowTimer) clearTimeout(printerShowTimer);
+  document.getElementById('printer-game').style.display = 'none';
+  S.printerActive = false;
+  addSuspicion(5);
+  mgEnd();
+}
+
+function completePrinterNew(mistakes) {
+  document.getElementById('printer-game').style.display = 'none';
+  S.printerActive = false;
+  S.flags.printerFixed = true;
+  addToInventory('paperclip');
+  advanceTime(15);
+
+  if (mistakes === 0) {
+    const reward = miniGameReward(0, 'printer');
+    toast('JAM CLEARED perfectly! Paperclip acquired. Both Derek and Karen rush to investigate.');
+    S.npcs.derek.room = 'printerAlcove'; S.npcs.derek.x = 16; S.npcs.derek.y = 8;
+    S.npcs.karen.room = 'printerAlcove'; S.npcs.karen.x = 16; S.npcs.karen.y = 10;
+    setTimeout(() => {
+      S.npcs.derek.room = 'managerOffice'; S.npcs.derek.x = 20; S.npcs.derek.y = 4;
+      S.npcs.karen.room = 'hrCorridor'; S.npcs.karen.x = 12; S.npcs.karen.y = 8;
+    }, 25000);
+  } else if (mistakes <= 2) {
+    toast('Jam cleared with minor fumbling. Paperclip acquired. Derek comes to investigate.');
+    S.npcs.derek.room = 'printerAlcove'; S.npcs.derek.x = 16; S.npcs.derek.y = 8;
+    setTimeout(() => {
+      S.npcs.derek.room = 'managerOffice'; S.npcs.derek.x = 20; S.npcs.derek.y = 4;
+    }, 25000);
+  } else {
+    addSuspicion(10);
+    toast('Jam cleared, but you made a mess. Paperclip acquired. +10 suspicion.');
+  }
+  mgEnd();
+}
+
+// ============================================================
+// MINI-GAME 6: SERVER ROOM OVERRIDE
+// ============================================================
+let _serverKeyHandler = null;
+
+// Override interactServerTerminal when player has the server code
+const _origInteractServerTerminal = interactServerTerminal;
+interactServerTerminal = function() {
+  if (S.flags.badgeScannerOff) {
+    showDialogue('Server Terminal', "Badge scanner: DISABLED. You're all set.", [{label:'Good.', cb:()=>closeDialogue()}]);
+    return;
+  }
+  if (hasItem('serverCode')) {
+    showDialogue('Server Terminal',
+      "A terminal glows in the dark. It looks like it accepts commands.",
+      [
+        { label: 'Use terminal (mini-game)', cb: () => { closeDialogue(); startServerGame(); } },
+        { label: 'Quick disable', cb: () => {
+          S.flags.badgeScannerOff = true;
+          S.route = S.route || 'server';
+          advanceTime(10); closeDialogue();
+          toast('Badge scanner DISABLED. The elevator is open.');
+        }},
+        { label: 'Leave it', cb: () => closeDialogue() }
+      ]);
+  } else {
+    showDialogue('Server Terminal',
+      "A terminal glows in the dark. Elevator badge scanner in the system.\n\n> ELEVATOR_SCANNER_01: ACTIVE\n\nYou need an access code to proceed.",
+      [{ label: 'Walk away', cb: () => closeDialogue() }]);
+  }
+};
+
+function startServerGame() {
+  S.miniGameActive = true;
+  const el = document.getElementById('server-game');
+  el.style.display = 'block';
+  let failedPasswords = 0;
+  let outputLines = [];
+  let passwordMode = false;
+  let step = 0; // 0=start, 1=listed files, 2=read config, 3=asked for override, 4=password prompt
+
+  const serverCode = '4471'; // The code Jess gives
+
+  function addOutput(text) {
+    outputLines.push(text);
+    renderTerminal();
+  }
+
+  function renderTerminal() {
+    el.innerHTML = `
+      <div class="minigame-title">VANTAGE SOLUTIONS SERVER v3.7.1</div>
+      <div class="server-output" id="server-output">${outputLines.join('\n')}</div>
+      <div class="server-input-line">
+        <span class="server-prompt-char">&gt; </span>
+        <input class="server-input" id="server-input" type="text" autocomplete="off" ${passwordMode ? 'placeholder="Enter password..."' : 'placeholder="Type a command..."'}>
+      </div>
+      <div class="server-footer"><button class="minigame-btn" id="server-cancel">Escape [Esc]</button></div>
+    `;
+    const output = document.getElementById('server-output');
+    if (output) output.scrollTop = output.scrollHeight;
+    const input = document.getElementById('server-input');
+    if (input) {
+      mgSetTimeout(() => input.focus(), 30);
+      input.addEventListener('keydown', handleServerInput);
+    }
+    el.querySelector('#server-cancel').onclick = endServer;
+  }
+
+  function handleServerInput(e) {
+    if (e.key === 'Escape') { endServer(); return; }
+    if (e.key !== 'Enter') return;
+    const input = document.getElementById('server-input');
+    const cmd = (input ? input.value : '').trim().toLowerCase();
+    if (!cmd) return;
+    addOutput(`> ${passwordMode ? '****' : cmd}`);
+
+    if (passwordMode) {
+      if (cmd === serverCode) {
+        addOutput('ACCESS GRANTED');
+        addOutput('SCANNER_STATUS=INACTIVE');
+        addOutput('Badge scanner disabled successfully.');
+        S.flags.badgeScannerOff = true;
+        S.route = S.route || 'server';
+        advanceTime(10);
+        toast('Badge scanner DISABLED via terminal. The elevator is open.');
+        mgSetTimeout(endServer, 1500);
+      } else {
+        failedPasswords++;
+        if (failedPasswords >= 3) {
+          addOutput('ACCOUNT LOCKED — TOO MANY FAILED ATTEMPTS');
+          addSuspicion(15);
+          toast('Terminal locked! +15 suspicion.');
+          mgSetTimeout(endServer, 1500);
+        } else {
+          addOutput(`Incorrect password. ${3 - failedPasswords} attempts remaining.`);
+          passwordMode = false;
+          renderTerminal();
+        }
+      }
+      return;
+    }
+
+    if (cmd === 'ls' || cmd === 'dir') {
+      addOutput('scanner.cfg    access_log.txt    readme.md    .env');
+      step = Math.max(step, 1);
+    } else if (cmd === 'cat scanner.cfg' || cmd === 'read scanner.cfg' || cmd === 'more scanner.cfg' || cmd === 'open scanner.cfg') {
+      addOutput('# Badge Scanner Configuration');
+      addOutput('SCANNER_STATUS=ACTIVE');
+      addOutput('OVERRIDE_LEVEL=ADMIN');
+      addOutput('LAST_MODIFIED=2024-03-14');
+      step = Math.max(step, 2);
+    } else if (cmd === 'cat access_log.txt' || cmd === 'read access_log.txt') {
+      addOutput('[03/14 08:01] CHEN, LINDA — ACCESS DENIED (TERMINATED)');
+      addOutput('[03/14 08:47] CHEN, M — ACCESS GRANTED');
+      addOutput('[03/14 17:59] SYSTEM — MAINTENANCE MODE ENGAGED');
+    } else if (cmd === 'cat readme.md' || cmd === 'read readme.md') {
+      addOutput('# Server Room Operations');
+      addOutput('For scanner override: run `override scanner` with admin password.');
+    } else if (cmd === 'cat .env' || cmd === 'read .env') {
+      addOutput('Permission denied: classified');
+    } else if (cmd === 'override scanner' || cmd === 'sudo disable scanner' || cmd === 'disable scanner') {
+      addOutput('OVERRIDE REQUESTED — Enter admin password:');
+      passwordMode = true;
+      step = Math.max(step, 3);
+      renderTerminal();
+      return;
+    } else if (cmd === 'help') {
+      addOutput('Available commands: ls, cat <file>, override scanner, help, exit');
+    } else if (cmd === 'exit' || cmd === 'quit') {
+      endServer();
+      return;
+    } else if (cmd.startsWith('sudo')) {
+      addOutput('segfault: synergy overflow');
+    } else if (cmd === 'whoami') {
+      addOutput('EMPLOYEE_7F_TEMP_ACCESS');
+    } else if (cmd === 'pwd') {
+      addOutput('/srv/vantage/floor7/security');
+    } else {
+      const errors = [
+        `${cmd}: command not found`,
+        `bash: ${cmd}: permission denied`,
+        `segfault: synergy overflow`,
+        `Error: ${cmd} is not a recognized internal command`,
+      ];
+      addOutput(errors[Math.floor(Math.random() * errors.length)]);
+    }
+    renderTerminal();
+  }
+
+  function endServer() {
+    if (_serverKeyHandler) { document.removeEventListener('keydown', _serverKeyHandler); _serverKeyHandler = null; }
+    el.style.display = 'none';
+    mgEnd();
+  }
+
+  // Initial banner
+  outputLines = [
+    '===========================================',
+    '  VANTAGE SOLUTIONS — FLOOR 7 SERVER',
+    '  Authorized personnel only.',
+    '  Type "help" for available commands.',
+    '==========================================='
+  ];
+  renderTerminal();
 }
 
 // ============================================================
@@ -2618,18 +3862,30 @@ function render() {
   // Player
   drawPlayer();
 
-  // Suspicion vignette
-  if (S.suspicion > 50) {
-    const a = (S.suspicion-50)/100;
+  // Fluorescent light flicker — subtle brightness pulse every 30-60 seconds
+  const flickerTime = Date.now();
+  const flickerCycle = Math.sin(flickerTime / 45000) * Math.sin(flickerTime / 7919);
+  if (flickerCycle > 0.85) {
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(0,0,CW,CH);
+  }
+
+  // Suspicion vignette — red edges when suspicion rises
+  if (S.suspicion > 30) {
+    const a = (S.suspicion-30)/140;
     const grad = ctx.createRadialGradient(CW/2,CH/2,80, CW/2,CH/2,CW*0.65);
     grad.addColorStop(0,'rgba(180,0,0,0)');
-    grad.addColorStop(1,`rgba(180,0,0,${a*0.35})`);
+    grad.addColorStop(1,`rgba(180,0,0,${a*0.4})`);
     ctx.fillStyle = grad;
+    ctx.fillRect(0,0,CW,CH);
+  } else if (S.suspicion < 10) {
+    // Clean, slightly brighter feel when low suspicion
+    ctx.fillStyle = 'rgba(200,220,255,0.02)';
     ctx.fillRect(0,0,CW,CH);
   }
 
   // Interaction hints
-  if (!S.dialogue && !S.printerActive && !S.slackVisible) drawHints();
+  if (!S.dialogue && !S.printerActive && !S.slackVisible && !S.miniGameActive) drawHints();
 
   // Minimap
   drawMinimap();
@@ -2765,6 +4021,7 @@ function drawTile(type, x, y, col, row) {
       }
       break;
     case T.SERVER:
+      drawCarpetBg();
       if (!tryDrawObj('obj_server')) {
         ctx.fillStyle = '#505068';
         ctx.fillRect(x,y,TILE,TILE);
@@ -2810,6 +4067,7 @@ function drawTile(type, x, y, col, row) {
       }
       break;
     case T.COUNTER:
+      drawFloorBg();
       if (!tryDrawObj('obj_counter')) {
         ctx.fillStyle = COL.counter;
         ctx.fillRect(x,y,TILE,TILE);
@@ -2818,6 +4076,7 @@ function drawTile(type, x, y, col, row) {
       }
       break;
     case T.FRIDGE:
+      drawFloorBg();
       if (!tryDrawObj('obj_fridge')) {
         ctx.fillStyle = COL.counter;
         ctx.fillRect(x,y,TILE,TILE);
@@ -2829,6 +4088,7 @@ function drawTile(type, x, y, col, row) {
       }
       break;
     case T.KEURIG:
+      drawFloorBg();
       if (!tryDrawObj('obj_keurig')) {
         ctx.fillStyle = COL.counter;
         ctx.fillRect(x,y,TILE,TILE);
@@ -2879,7 +4139,7 @@ function drawTile(type, x, y, col, row) {
       ctx.fillRect(x+TILE/2-1,y,2,TILE);
       break;
     case T.CABINET:
-      drawFloorBg();
+      if (S.room==='serverRoom') drawCarpetBg(); else drawFloorBg();
       if (!tryDrawObj('obj_cabinet')) {
         ctx.fillStyle = COL.cabinet;
         ctx.fillRect(x+3,y+3,TILE-6,TILE-6);
@@ -3036,6 +4296,33 @@ function shadeColor(hex, amt) {
   return `rgb(${r},${g},${b})`;
 }
 
+function tileHasInteraction(t, x, y) {
+  const rm = S.room;
+  if (t===T.PLAYER_DESK) return true;
+  if (t===T.ELEVATOR) return true;
+  if (t===T.FRIDGE) return true;
+  if (t===T.KEURIG) return true;
+  if (t===T.WHITEBOARD) return true;
+  if (t===T.FLOOR_PANEL) return true;
+  if (t===T.DESK) {
+    if (rm==='managerOffice') return true;
+    if (rm==='openPlan') return true;
+    if (rm==='supplyCloset' && DAY===2) return true;
+    if (rm==='conference' && DAY===2) return true;
+    return false;
+  }
+  if (t===T.PRINTER) return rm==='printerAlcove';
+  if (t===T.SHELF) return rm==='supplyCloset' || (rm==='managerOffice' && DAY===2);
+  if (t===T.CABINET) {
+    return rm==='elevLobby' || rm==='hrCorridor' || rm==='serverRoom' || (rm==='supplyCloset' && DAY===2) || rm==='collabZone';
+  }
+  if (t===T.SERVER) return rm==='serverRoom';
+  if (t===T.SCREEN) return rm==='collabZone';
+  if (t===T.VENT) return true;
+  if (t===T.CHAIR) return rm==='conference';
+  return false;
+}
+
 function drawHints() {
   // NPC hints
   for (const [id, npc] of Object.entries(S.npcs)) {
@@ -3044,11 +4331,16 @@ function drawHints() {
       return;
     }
   }
-  // Tile hints
+  // Tile hints with glow highlight — only show [E] if there's an actual interaction
   const adj = getAdjTiles();
   for (const {x,y,t} of adj) {
-    const interactable = [T.PLAYER_DESK,T.DESK,T.PRINTER,T.WHITEBOARD,T.FRIDGE,T.KEURIG,T.SHELF,T.CABINET,T.ELEVATOR,T.SERVER,T.FLOOR_PANEL,T.SCREEN,T.VENT].includes(t);
+    const interactable = tileHasInteraction(t, x, y);
     if (interactable) {
+      // Subtle pulsing glow outline around interactable object
+      const glowAlpha = 0.15 + 0.1 * Math.sin(Date.now() / 400);
+      ctx.strokeStyle = `rgba(255,220,100,${glowAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x*TILE+1, y*TILE+1, TILE-2, TILE-2);
       drawHintLabel(x*TILE+TILE/2, y*TILE-2, '[E]');
       break;
     }
